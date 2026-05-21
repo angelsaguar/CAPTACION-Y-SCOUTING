@@ -1,0 +1,95 @@
+-- SQL Schema for La Poveda Scouting
+
+-- Tables
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY DEFAULT auth.uid(),
+  nombre TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  role TEXT DEFAULT 'scout',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.players (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  apellidos TEXT NOT NULL,
+  telefono TEXT,
+  contacto_tipo TEXT, -- Padre, Madre, Jugador
+  equipo_actual TEXT,
+  dorsal TEXT,
+  posicion TEXT NOT NULL,
+  lateralidad TEXT, -- Izquierdo, Derecho, Ambidiestro
+  anio_nacimiento INTEGER,
+  foto_url TEXT,
+  observaciones TEXT,
+  fecha_seguimiento DATE,
+  potencial INTEGER CHECK (potencial >= 1 AND potencial <= 5),
+  estado TEXT DEFAULT 'Observado', -- Observado, En seguimiento, Interesa, Fichado
+  created_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Player attributes for valuation (0-5)
+CREATE TABLE IF NOT EXISTS public.player_attributes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  player_id UUID REFERENCES public.players(id) ON DELETE CASCADE,
+  atributo TEXT NOT NULL,
+  valor INTEGER CHECK (valor >= 0 AND valor <= 5),
+  UNIQUE(player_id, atributo)
+);
+
+CREATE TABLE IF NOT EXISTS public.tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.player_tags (
+  player_id UUID REFERENCES public.players(id) ON DELETE CASCADE,
+  tag_id UUID REFERENCES public.tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (player_id, tag_id)
+);
+
+-- RLS Policies
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.player_attributes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.player_tags ENABLE ROW LEVEL SECURITY;
+
+-- Profiles logic (auto-create profile for new users)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, nombre, email, role)
+  VALUES (new.id, new.raw_user_meta_data->>'nombre', new.email, 'scout');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Policies
+CREATE POLICY "Users can see all players" ON public.players FOR SELECT USING (true);
+CREATE POLICY "Scouts can insert players" ON public.players FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Scouts can update own players" ON public.players FOR UPDATE USING (auth.uid() = created_by OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+
+CREATE POLICY "Users can see attributes" ON public.player_attributes FOR SELECT USING (true);
+CREATE POLICY "Scouts can manage attributes" ON public.player_attributes FOR ALL USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Everyone can see tags" ON public.tags FOR SELECT USING (true);
+CREATE POLICY "Everyone can see player tags" ON public.player_tags FOR SELECT USING (true);
+
+-- Functions for stats
+CREATE OR REPLACE FUNCTION get_player_stats()
+RETURNS TABLE (
+  total_players BIGINT,
+  by_position JSON,
+  by_lateralidad JSON
+) AS $$
+BEGIN
+  RETURN QUERY SELECT
+    (SELECT count(*) FROM public.players),
+    (SELECT json_object_agg(posicion, count) FROM (SELECT posicion, count(*) FROM public.players GROUP BY posicion) s),
+    (SELECT json_object_agg(lateralidad, count) FROM (SELECT lateralidad, count(*) FROM public.players GROUP BY lateralidad) s);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
