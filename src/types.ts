@@ -39,6 +39,7 @@ export interface Player {
 export interface Observer {
   id: string;
   nombre: string;
+  foto_url?: string;
   created_at?: string;
 }
 

@@ -42,7 +42,7 @@ export async function getObservers(): Promise<Observer[]> {
   return DEFAULT_OBSERVERS;
 }
 
-export async function addObserver(nombre: string): Promise<Observer> {
+export async function addObserver(nombre: string, foto_url?: string): Promise<Observer> {
   const trimmedName = nombre.trim();
   if (!trimmedName) throw new Error('El nombre del observador no puede estar vacío');
 
@@ -53,10 +53,12 @@ export async function addObserver(nombre: string): Promise<Observer> {
   const newObserver: Observer = {
     id: newId,
     nombre: trimmedName,
+    foto_url,
     created_at: new Date().toISOString(),
   };
 
   try {
+    // Try inserting with foto_url. If it fails due to missing column, we'll try without foto_url.
     const { data, error } = await supabase
       .from('observers')
       .insert([newObserver])
@@ -64,12 +66,31 @@ export async function addObserver(nombre: string): Promise<Observer> {
       .single();
 
     if (!error && data) {
-      // Sync list
       await getObservers();
       return data;
     }
+    
     if (error) {
-      console.warn('Supabase insert observer failed (the table might be missing or permission error):', error);
+      console.warn('Supabase insert observer with foto_url failed, trying without foto_url:', error);
+      // Fallback: try inserting without foto_url
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('observers')
+        .insert([{ id: newId, nombre: trimmedName, created_at: newObserver.created_at }])
+        .select()
+        .single();
+        
+      if (!fallbackError && fallbackData) {
+        // Enriched with the picture locally
+        const enriched = { ...fallbackData, foto_url };
+        const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+        let list: Observer[] = [];
+        if (cached) {
+          try { list = JSON.parse(cached); } catch { list = []; }
+        }
+        list = [...list.filter(o => o.id !== enriched.id), enriched];
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+        return enriched;
+      }
     }
   } catch (error) {
     console.warn('Exception inserting observer to Supabase:', error);
@@ -123,4 +144,87 @@ export async function deleteObserver(id: string): Promise<boolean> {
     }
   }
   return false;
+}
+
+export async function updateObserver(id: string, nombre: string, foto_url?: string): Promise<Observer> {
+  const trimmedName = nombre.trim();
+  if (!trimmedName) throw new Error('El nombre del observador no puede estar vacío');
+
+  try {
+    const updatePayload: Partial<Observer> = { nombre: trimmedName };
+    if (foto_url !== undefined) {
+      updatePayload.foto_url = foto_url;
+    }
+
+    const { data, error } = await supabase
+      .from('observers')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      await getObservers();
+      // Ensure we keep the local state updated with latest
+      return data;
+    }
+    
+    if (error) {
+      console.warn('Supabase update observer with foto_url failed, trying only name update:', error);
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('observers')
+        .update({ nombre: trimmedName })
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (!fallbackError && fallbackData) {
+        const enriched = { ...fallbackData, foto_url: foto_url || undefined };
+        const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+        let list: Observer[] = [];
+        if (cached) {
+          try { list = JSON.parse(cached); } catch { list = []; }
+        }
+        const idx = list.findIndex(o => o.id === id);
+        if (idx !== -1) {
+          list[idx] = enriched;
+        } else {
+          list.push(enriched);
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+        return enriched;
+      }
+    }
+  } catch (error) {
+    console.error('Exception updating observer in Supabase:', error);
+  }
+
+  // Local fallback
+  const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+  let list: Observer[] = [];
+  if (cached) {
+    try {
+      list = JSON.parse(cached);
+    } catch {
+      list = DEFAULT_OBSERVERS;
+    }
+  }
+
+  const index = list.findIndex(o => o.id === id);
+  if (index === -1) {
+    throw new Error('No se encontró el scouter para editar');
+  }
+
+  if (list.some((o, idx) => idx !== index && o.nombre.toLowerCase() === trimmedName.toLowerCase())) {
+    throw new Error('Ya existe un observador con este nombre');
+  }
+
+  const updatedObj = { ...list[index], nombre: trimmedName };
+  if (foto_url !== undefined) {
+    updatedObj.foto_url = foto_url;
+  }
+  
+  list[index] = updatedObj;
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+  return list[index];
 }

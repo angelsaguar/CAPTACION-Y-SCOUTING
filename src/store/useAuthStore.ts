@@ -13,7 +13,12 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: true,
-  setUser: (user) => set({ user, loading: false }),
+  setUser: (user) => {
+    if (user && user.email === 'angel.saguar@telefonica.net') {
+      user.role = 'admin';
+    }
+    set({ user, loading: false });
+  },
   signOut: async () => {
     await supabase.auth.signOut();
     set({ user: null, loading: false });
@@ -28,8 +33,13 @@ export const useAuthStore = create<AuthState>((set) => ({
           .eq('id', authUser.id)
           .single();
         
+        const isAdminEmail = authUser.email === 'angel.saguar@telefonica.net';
         if (profile) {
-          set({ user: profile as User, loading: false });
+          const updatedProfile = {
+            ...profile,
+            role: isAdminEmail ? 'admin' : (profile.role || 'scout'),
+          };
+          set({ user: updatedProfile as User, loading: false });
         } else {
           // If auth user exists but profile doesn't, create a temporary user object
           // to prevent redirection loop and allow the user to see the app.
@@ -38,7 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               id: authUser.id, 
               email: authUser.email || '', 
               nombre: authUser.user_metadata?.nombre || 'Nuevo Usuario',
-              role: 'scout' 
+              role: isAdminEmail ? 'admin' : 'scout' 
             } as User, 
             loading: false 
           });

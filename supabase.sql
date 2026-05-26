@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.players (
 CREATE TABLE IF NOT EXISTS public.observers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre TEXT NOT NULL UNIQUE,
+  foto_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
