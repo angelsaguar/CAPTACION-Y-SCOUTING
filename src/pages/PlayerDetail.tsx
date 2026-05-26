@@ -44,6 +44,7 @@ import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +54,8 @@ import {
 
 export default function PlayerDetail() {
   const { id } = useParams();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,9 +185,11 @@ export default function PlayerDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0 justify-end">
-          <Link to={`/players/${player.id}/edit`}>
-            <Button variant="outline"><Edit2 className="w-4 h-4 mr-2" /> Editar</Button>
-          </Link>
+          {isAdmin && (
+            <Link to={`/players/${player.id}/edit`}>
+              <Button variant="outline"><Edit2 className="w-4 h-4 mr-2" /> Editar</Button>
+            </Link>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "bg-slate-900 border-slate-700")}>
               <Download className="w-4 h-4 mr-2" /> Exportar

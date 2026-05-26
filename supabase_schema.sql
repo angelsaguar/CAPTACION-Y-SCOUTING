@@ -46,31 +46,67 @@ ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_attributes ENABLE ROW LEVEL SECURITY;
 
 -- 5. Policies for Users
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
 CREATE POLICY "Users can view their own profile" ON public.users
     FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
 CREATE POLICY "Users can update their own profile" ON public.users
     FOR UPDATE USING (auth.uid() = id);
 
--- 6. Policies for Players (Simplified: Authenticated users can do everything for now)
+-- 6. Policies for Players (Only admins can edit or delete, anyone logged in can view and register)
+DROP POLICY IF EXISTS "Authenticated users can view players" ON public.players;
 CREATE POLICY "Authenticated users can view players" ON public.players
     FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Scouts can insert players" ON public.players
+DROP POLICY IF EXISTS "Authenticated users can insert players" ON public.players;
+CREATE POLICY "Authenticated users can insert players" ON public.players
     FOR INSERT TO authenticated WITH CHECK (true);
 
-CREATE POLICY "Users can update players" ON public.players
-    FOR UPDATE TO authenticated USING (true);
+DROP POLICY IF EXISTS "Only admins can update players" ON public.players;
+CREATE POLICY "Only admins can update players" ON public.players
+    FOR UPDATE TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.users
+            WHERE users.id = auth.uid() AND users.role = 'admin'
+        )
+    );
 
-CREATE POLICY "Users can delete players" ON public.players
-    FOR DELETE TO authenticated USING (true);
+DROP POLICY IF EXISTS "Only admins can delete players" ON public.players;
+CREATE POLICY "Only admins can delete players" ON public.players
+    FOR DELETE TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.users
+            WHERE users.id = auth.uid() AND users.role = 'admin'
+        )
+    );
 
 -- 7. Policies for Player Attributes
+DROP POLICY IF EXISTS "Authenticated users can view attributes" ON public.player_attributes;
 CREATE POLICY "Authenticated users can view attributes" ON public.player_attributes
     FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Authenticated users can manage attributes" ON public.player_attributes
-    FOR ALL TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can insert attributes" ON public.player_attributes;
+CREATE POLICY "Authenticated users can insert attributes" ON public.player_attributes
+    FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Only admins can update attributes" ON public.player_attributes;
+CREATE POLICY "Only admins can update attributes" ON public.player_attributes
+    FOR UPDATE TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.users
+            WHERE users.id = auth.uid() AND users.role = 'admin'
+        )
+    );
+
+DROP POLICY IF EXISTS "Only admins can delete attributes" ON public.player_attributes;
+CREATE POLICY "Only admins can delete attributes" ON public.player_attributes
+    FOR DELETE TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.users
+            WHERE users.id = auth.uid() AND users.role = 'admin'
+        )
+    );
 
 -- 8. Storage Configuration (Avatars bucket)
 -- Note: You need to create a bucket named 'avatars' in Supabase Storage UI manually or via SQL.

@@ -87,6 +87,13 @@ export default function PlayerForm() {
   const selectedPosition = form.watch('posicion');
 
   useEffect(() => {
+    if (id && user && user.role !== 'admin') {
+      toast.error('No tienes permisos para editar jugadores.');
+      navigate('/players');
+    }
+  }, [id, user, navigate]);
+
+  useEffect(() => {
     if (id) {
       async function fetchPlayer() {
         try {
@@ -192,6 +199,10 @@ export default function PlayerForm() {
   };
 
   const onSubmit = async (values: PlayerFormValues) => {
+    if (id && user?.role !== 'admin') {
+      toast.error('No tienes permisos para editar jugadores.');
+      return;
+    }
     setLoading(true);
     try {
       let finalFotoUrl = values.foto_url;

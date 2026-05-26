@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import UDLaPovedaLogo from './UDLaPovedaLogo';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, ChevronRight } from 'lucide-react';
 
@@ -39,14 +40,7 @@ export default function Layout() {
       <header className="mobile-header-container lg:hidden flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/95 sticky top-0 z-40 select-none">
         <div className="flex items-center gap-3">
           <div className="bg-white p-1 rounded-lg flex-shrink-0">
-            <img 
-              src="https://www.lapreferente.com/imagenes/escudos/1569.png" 
-              alt="U.D. La Poveda" 
-              className="w-8 h-8 object-contain"
-              onError={(e) => {
-                e.currentTarget.src = "https://www.rffm.es/images/escudos/1569.png";
-              }}
-            />
+            <UDLaPovedaLogo className="w-8 h-8" />
           </div>
           <div>
             <h1 className="font-bold text-sm tracking-tight leading-tight">U.D. LA POVEDA</h1>

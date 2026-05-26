@@ -47,9 +47,12 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function Players() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -95,6 +98,10 @@ export default function Players() {
   }, [search, filterStatus, filterPosition, filterLateralidad, filterBirthYear]);
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) {
+      toast.error('No tienes permisos para eliminar jugadores');
+      return;
+    }
     if (!confirm('¿Estás seguro de que deseas eliminar este jugador?')) return;
     
     try {
@@ -330,15 +337,19 @@ export default function Players() {
                       <DropdownMenuItem onClick={() => navigate(`/players/${player.id}`)}>
                         <Eye className="w-4 h-4 mr-2" /> Ver detalle
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(`/players/${player.id}/edit`)}>
-                        <Edit2 className="w-4 h-4 mr-2" /> Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-red-600 focus:text-red-600"
-                        onClick={() => handleDelete(player.id)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" /> Eliminar
-                      </DropdownMenuItem>
+                      {isAdmin && (
+                        <>
+                          <DropdownMenuItem onClick={() => navigate(`/players/${player.id}/edit`)}>
+                            <Edit2 className="w-4 h-4 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-600 focus:text-red-600"
+                            onClick={() => handleDelete(player.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -420,15 +431,17 @@ export default function Players() {
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Link to={`/players/${player.id}/edit`}>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl">
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                       {isAdmin && (
+                         <Link to={`/players/${player.id}/edit`}>
+                           <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl">
+                             <Edit2 className="h-4 w-4" />
+                           </Button>
+                         </Link>
+                       )}
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-10 w-10 text-slate-500 hover:text-red-500 hover:bg-slate-800 rounded-xl"
+                        className={cn("h-10 w-10 text-slate-500 hover:text-red-500 hover:bg-slate-800 rounded-xl", !isAdmin && "hidden")}
                         onClick={() => handleDelete(player.id)}
                       >
                         <Trash2 className="h-4 w-4" />

@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Trophy, Mail, Lock, Loader2, UserPlus, FileText, AlertTriangle, KeySquare } from 'lucide-react';
 import { toast } from 'sonner';
+import UDLaPovedaLogo from '@/components/layout/UDLaPovedaLogo';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -93,14 +94,7 @@ export default function Register() {
           )}
           <div className="flex justify-center mb-4">
             <div className="bg-white p-2 rounded-2xl shadow-lg ring-4 ring-white/10">
-              <img 
-                src="https://www.lapreferente.com/imagenes/escudos/1569.png" 
-                alt="U.D. La Poveda" 
-                className="w-16 h-16 object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = "https://www.rffm.es/images/escudos/1569.png";
-                }}
-              />
+              <UDLaPovedaLogo className="w-16 h-16" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-white uppercase italic">ÚNETE A U.D. LA POVEDA</CardTitle>

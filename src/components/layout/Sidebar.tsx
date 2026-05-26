@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/useAuthStore';
+import UDLaPovedaLogo from './UDLaPovedaLogo';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -40,14 +41,7 @@ export default function Sidebar({ onClose, onCollapse, isCollapsed }: SidebarPro
       <div className="p-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="bg-white p-1 rounded-lg flex-shrink-0">
-            <img 
-              src="https://www.lapreferente.com/imagenes/escudos/1569.png" 
-              alt="U.D. La Poveda" 
-              className="w-10 h-10 object-contain"
-              onError={(e) => {
-                e.currentTarget.src = "https://www.rffm.es/images/escudos/1569.png";
-              }}
-            />
+            <UDLaPovedaLogo className="w-10 h-10" />
           </div>
           <div>
             <h1 className="font-bold text-base tracking-tight leading-tight">U.D. LA POVEDA</h1>

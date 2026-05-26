@@ -69,14 +69,34 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Trigger: CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Policies
+DROP POLICY IF EXISTS "Users can see all players" ON public.players;
 CREATE POLICY "Users can see all players" ON public.players FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Scouts can insert players" ON public.players;
 CREATE POLICY "Scouts can insert players" ON public.players FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "Scouts can update own players" ON public.players FOR UPDATE USING (auth.uid() = created_by OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
 
+DROP POLICY IF EXISTS "Only admins can update players" ON public.players;
+CREATE POLICY "Only admins can update players" ON public.players FOR UPDATE USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+
+DROP POLICY IF EXISTS "Only admins can delete players" ON public.players;
+CREATE POLICY "Only admins can delete players" ON public.players FOR DELETE USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+
+DROP POLICY IF EXISTS "Users can see attributes" ON public.player_attributes;
 CREATE POLICY "Users can see attributes" ON public.player_attributes FOR SELECT USING (true);
-CREATE POLICY "Scouts can manage attributes" ON public.player_attributes FOR ALL USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Scouts can insert attributes" ON public.player_attributes;
+CREATE POLICY "Scouts can insert attributes" ON public.player_attributes FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Only admins can update attributes" ON public.player_attributes;
+CREATE POLICY "Only admins can update attributes" ON public.player_attributes FOR UPDATE USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+
+DROP POLICY IF EXISTS "Only admins can delete attributes" ON public.player_attributes;
+CREATE POLICY "Only admins can delete attributes" ON public.player_attributes FOR DELETE USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+
+DROP POLICY IF EXISTS "Everyone can see tags" ON public.tags;
 CREATE POLICY "Everyone can see tags" ON public.tags FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Everyone can see player tags" ON public.player_tags;
 CREATE POLICY "Everyone can see player tags" ON public.player_tags FOR SELECT USING (true);
 
 -- Functions for stats
