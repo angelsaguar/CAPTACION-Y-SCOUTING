@@ -41,6 +41,14 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
+const STATUS_COLORS: Record<string, string> = {
+  'Observado': '#94a3b8',      // Slate-400
+  'En seguimiento': '#f59e0b', // Amber-500
+  'Interesa': '#10b981',       // Emerald-500
+  'Fichado': '#3b82f6',        // Blue-500
+  'Rechazado': '#ef4444',      // Red-500
+};
+
 const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#ca8a04', '#7c3aed', '#db2777'];
 
 export default function Dashboard() {
@@ -94,10 +102,24 @@ export default function Dashboard() {
       return acc;
     }, {});
 
-    const status = filteredPlayers.reduce((acc: any, p) => {
-      acc[p.estado] = (acc[p.estado] || 0) + 1;
+    // Prepopulate status map with all 5 standard statuses so they are always present
+    const allStatuses = ['Observado', 'En seguimiento', 'Interesa', 'Fichado', 'Rechazado'];
+    const statusMap = allStatuses.reduce((acc: Record<string, number>, s) => {
+      acc[s] = 0;
       return acc;
     }, {});
+
+    filteredPlayers.forEach(p => {
+      const pEstado = p.estado;
+      if (pEstado) {
+        const matched = allStatuses.find(s => s.trim().toLowerCase() === pEstado.trim().toLowerCase());
+        if (matched) {
+          statusMap[matched] += 1;
+        } else {
+          statusMap[pEstado] = (statusMap[pEstado] || 0) + 1;
+        }
+      }
+    });
 
     // Calculate new registrations for the current month
     const now = new Date();
@@ -113,7 +135,7 @@ export default function Dashboard() {
     setStats({
       total: filteredPlayers.length,
       byPosition: Object.entries(positions).map(([name, value]) => ({ name, value })),
-      byStatus: Object.entries(status).map(([name, value]) => ({ name, value })),
+      byStatus: Object.entries(statusMap).map(([name, value]) => ({ name, value })),
       recentPlayers: filteredPlayers.slice(0, 5),
       newThisMonth: newThisMonthCount
     });
@@ -234,32 +256,39 @@ export default function Dashboard() {
             <CardTitle className="text-lg font-bold text-white">Distribución de Estados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.byStatus}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {stats.byStatus.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
+            <div className="h-[300px] flex flex-col justify-between">
+              <div className="h-[210px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.byStatus.filter(s => s.value > 0)}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {stats.byStatus.filter(s => s.value > 0).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#64748b'} stroke="none" />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5 mt-2 max-h-[80px] overflow-y-auto">
                 {stats.byStatus.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">{s.name}</span>
+                  <div key={i} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-lg bg-slate-900/30 border border-slate-800/40">
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full shrink-0" 
+                      style={{ backgroundColor: STATUS_COLORS[s.name] || '#64748b' }} 
+                    />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                      {s.name} <span className="font-mono text-white ml-0.5">{s.value}</span>
+                    </span>
                   </div>
                 ))}
               </div>
