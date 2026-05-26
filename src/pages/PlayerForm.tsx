@@ -546,26 +546,28 @@ export default function PlayerForm() {
                 <div className="space-y-2 pt-2 border-t border-slate-800">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="observador" className="text-slate-300">Observador / Scout</Label>
-                    {!isAddingObs ? (
-                      <button 
-                        type="button" 
-                        onClick={() => setIsAddingObs(true)}
-                        className="text-[10px] text-blue-500 hover:text-blue-400 font-bold flex items-center gap-1 uppercase tracking-wider"
-                      >
-                        <Plus className="w-3 h-3" /> Nuevo
-                      </button>
-                    ) : (
-                      <button 
-                        type="button" 
-                        onClick={() => setIsAddingObs(false)}
-                        className="text-[10px] text-slate-500 hover:text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wider"
-                      >
-                        <X className="w-3 h-3" /> Cancelar
-                      </button>
+                    {user?.role === 'admin' && (
+                      !isAddingObs ? (
+                        <button 
+                          type="button" 
+                          onClick={() => setIsAddingObs(true)}
+                          className="text-[10px] text-blue-500 hover:text-blue-400 font-bold flex items-center gap-1 uppercase tracking-wider"
+                        >
+                          <Plus className="w-3 h-3" /> Nuevo
+                        </button>
+                      ) : (
+                        <button 
+                          type="button" 
+                          onClick={() => setIsAddingObs(false)}
+                          className="text-[10px] text-slate-500 hover:text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wider"
+                        >
+                          <X className="w-3 h-3" /> Cancelar
+                        </button>
+                      )
                     )}
                   </div>
 
-                  {isAddingObs ? (
+                  {isAddingObs && user?.role === 'admin' ? (
                     <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2 animate-in slide-in-from-top-2 duration-200">
                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Alta rápida de observador</p>
                       <div className="flex gap-2">
