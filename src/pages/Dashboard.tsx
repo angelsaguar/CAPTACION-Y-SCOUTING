@@ -37,7 +37,8 @@ export default function Dashboard() {
     total: 0,
     byPosition: [] as any[],
     recentPlayers: [] as Player[],
-    byStatus: [] as any[]
+    byStatus: [] as any[],
+    newThisMonth: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -61,11 +62,23 @@ export default function Dashboard() {
             return acc;
           }, {});
 
+          // Calculemos los nuevos de este mes.
+          const now = new Date();
+          const currentMonth = now.getMonth(); // 0-11
+          const currentYear = now.getFullYear();
+
+          const newThisMonthCount = players.filter(p => {
+            if (!p.created_at) return false;
+            const pDate = new Date(p.created_at);
+            return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
+          }).length;
+
           setStats({
             total: players.length,
             byPosition: Object.entries(positions).map(([name, value]) => ({ name, value })),
             byStatus: Object.entries(status).map(([name, value]) => ({ name, value })),
-            recentPlayers: players.slice(0, 5)
+            recentPlayers: players.slice(0, 5),
+            newThisMonth: newThisMonthCount
           });
         }
       } catch (error) {
@@ -82,7 +95,7 @@ export default function Dashboard() {
     { label: 'Total Jugadores', value: stats.total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
     { label: 'En Seguimiento', value: stats.byStatus.find(s => s.name === 'En seguimiento')?.value || 0, icon: Target, color: 'text-red-600', bg: 'bg-red-100' },
     { label: 'Interesan', value: stats.byStatus.find(s => s.name === 'Interesa')?.value || 0, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-100' },
-    { label: 'Nuevos (Mes)', value: 0, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-100' },
+    { label: 'Nuevos (Mes)', value: stats.newThisMonth, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-100' },
   ];
 
   return (
