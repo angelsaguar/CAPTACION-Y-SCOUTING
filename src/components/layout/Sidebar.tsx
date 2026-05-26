@@ -23,6 +23,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Jugadores', path: '/players' },
   { icon: UsersRound, label: 'Scouters', path: '/observers' },
+  { icon: Trophy, label: 'Necesidades', path: '/needs' },
   { icon: Search, label: 'Comparador', path: '/comparison' },
   { icon: TrendingUp, label: 'Analítica', path: '/analytics' },
 ];

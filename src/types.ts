@@ -43,6 +43,16 @@ export interface Observer {
   created_at?: string;
 }
 
+export interface Need {
+  id: string;
+  equipo: string;
+  posicion: string;
+  solicitante: string;
+  observaciones?: string;
+  created_by?: string;
+  created_at?: string;
+}
+
 export interface PlayerAttribute {
   player_id: string;
   atributo: string;

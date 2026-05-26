@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS public.observers (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Needs table
+CREATE TABLE IF NOT EXISTS public.needs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  equipo TEXT NOT NULL,
+  posicion TEXT NOT NULL,
+  solicitante TEXT NOT NULL,
+  observaciones TEXT,
+  created_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Player attributes for valuation (0-5)
 CREATE TABLE IF NOT EXISTS public.player_attributes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -65,6 +76,7 @@ ALTER TABLE public.player_attributes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.observers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.needs ENABLE ROW LEVEL SECURITY;
 
 -- Observers Policies
 DROP POLICY IF EXISTS "Anyone can view observers" ON public.observers;
@@ -75,6 +87,19 @@ CREATE POLICY "Scouts can insert observers" ON public.observers FOR INSERT WITH 
 
 DROP POLICY IF EXISTS "Scouts can delete observers" ON public.observers;
 CREATE POLICY "Scouts can delete observers" ON public.observers FOR DELETE USING (auth.uid() IS NOT NULL);
+
+-- Needs Policies
+DROP POLICY IF EXISTS "Anyone can view needs" ON public.needs;
+CREATE POLICY "Anyone can view needs" ON public.needs FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Scouts can insert needs" ON public.needs;
+CREATE POLICY "Scouts can insert needs" ON public.needs FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Scouts can update needs" ON public.needs;
+CREATE POLICY "Scouts can update needs" ON public.needs FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Scouts can delete needs" ON public.needs;
+CREATE POLICY "Scouts can delete needs" ON public.needs FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Profiles logic (auto-create profile for new users)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
