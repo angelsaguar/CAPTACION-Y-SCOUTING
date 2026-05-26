@@ -276,20 +276,47 @@ export default function PlayerForm() {
 
       let playerId = id;
 
-      if (id) {
-        const { error } = await supabase
-          .from('players')
-          .update(playerPayload)
-          .eq('id', id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('players')
-          .insert(playerPayload)
-          .select()
-          .single();
-        if (error) throw error;
-        playerId = data.id;
+      try {
+        if (id) {
+          const { error } = await supabase
+            .from('players')
+            .update(playerPayload)
+            .eq('id', id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase
+            .from('players')
+            .insert(playerPayload)
+            .select()
+            .single();
+          if (error) throw error;
+          playerId = data.id;
+        }
+      } catch (dbError: any) {
+        const errorMsg = dbError?.message || '';
+        if (errorMsg.includes('observador') || errorMsg.includes('column') || errorMsg.includes('schema cache')) {
+          console.warn('Failing over to insert/update without observador column:', dbError);
+          // Omit observador from payload and retry
+          const { observador, ...fallbackPayload } = playerPayload;
+          if (id) {
+            const { error: retryError } = await supabase
+              .from('players')
+              .update(fallbackPayload)
+              .eq('id', id);
+            if (retryError) throw retryError;
+          } else {
+            const { data: retryData, error: retryError } = await supabase
+              .from('players')
+              .insert(fallbackPayload)
+              .select()
+              .single();
+            if (retryError) throw retryError;
+            playerId = retryData.id;
+          }
+          toast.warning('Guardado, pero sin asignar observador. Debes ejecutar el script SQL en Supabase para crear este campo.');
+        } else {
+          throw dbError;
+        }
       }
 
       // Upsert attributes
@@ -582,11 +609,11 @@ export default function PlayerForm() {
                       value={form.watch('observador') || ''} 
                       onValueChange={(val: any) => form.setValue('observador', val || '')}
                     >
-                      <SelectTrigger className="bg-slate-900 border-slate-800 text-white">
+                      <SelectTrigger className="bg-slate-900 border-slate-800 text-white w-full">
                         <SelectValue placeholder="Seleccionar observador..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none" className="text-slate-500 italic">Sin especificar / Ninguno</SelectItem>
+                        <SelectItem value="" className="text-slate-500 italic">Sin especificar / Ninguno</SelectItem>
                         {observers.map((obs) => (
                           <SelectItem key={obs.id} value={obs.nombre}>{obs.nombre}</SelectItem>
                         ))}

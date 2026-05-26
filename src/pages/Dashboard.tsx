@@ -26,12 +26,20 @@ import {
   Cell
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { Player } from '@/types';
+import { Player, Observer } from '@/types';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getObservers } from '@/lib/observers';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
 const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#ca8a04', '#7c3aed', '#db2777'];
 
@@ -43,46 +51,25 @@ export default function Dashboard() {
     byStatus: [] as any[],
     newThisMonth: 0
   });
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [observers, setObservers] = useState<Observer[]>([]);
+  const [selectedObserver, setSelectedObserver] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
+  // Load initial observers and players
   useEffect(() => {
-    async function fetchDashboardData() {
+    async function loadDataAndObservers() {
       try {
-        // In a real app we would use a RPC but for now let's query
-        const { data: players } = await supabase
-          .from('players')
-          .select('*')
-          .order('created_at', { ascending: false });
+        const [playersResp, observersResp] = await Promise.all([
+          supabase.from('players').select('*').order('created_at', { ascending: false }),
+          getObservers()
+        ]);
 
-        if (players) {
-          const positions = players.reduce((acc: any, p) => {
-            acc[p.posicion] = (acc[p.posicion] || 0) + 1;
-            return acc;
-          }, {});
-
-          const status = players.reduce((acc: any, p) => {
-            acc[p.estado] = (acc[p.estado] || 0) + 1;
-            return acc;
-          }, {});
-
-          // Calculemos los nuevos de este mes.
-          const now = new Date();
-          const currentMonth = now.getMonth(); // 0-11
-          const currentYear = now.getFullYear();
-
-          const newThisMonthCount = players.filter(p => {
-            if (!p.created_at) return false;
-            const pDate = new Date(p.created_at);
-            return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
-          }).length;
-
-          setStats({
-            total: players.length,
-            byPosition: Object.entries(positions).map(([name, value]) => ({ name, value })),
-            byStatus: Object.entries(status).map(([name, value]) => ({ name, value })),
-            recentPlayers: players.slice(0, 5),
-            newThisMonth: newThisMonthCount
-          });
+        if (playersResp.data) {
+          setAllPlayers(playersResp.data);
+        }
+        if (observersResp) {
+          setObservers(observersResp);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -91,8 +78,46 @@ export default function Dashboard() {
       }
     }
 
-    fetchDashboardData();
+    loadDataAndObservers();
   }, []);
+
+  // Recalculate stats dynamically when selected scouter changes or players list is loaded
+  useEffect(() => {
+    const filteredPlayers = selectedObserver === 'all'
+      ? allPlayers
+      : selectedObserver === 'none'
+        ? allPlayers.filter(p => !p.observador)
+        : allPlayers.filter(p => p.observador === selectedObserver);
+
+    const positions = filteredPlayers.reduce((acc: any, p) => {
+      acc[p.posicion] = (acc[p.posicion] || 0) + 1;
+      return acc;
+    }, {});
+
+    const status = filteredPlayers.reduce((acc: any, p) => {
+      acc[p.estado] = (acc[p.estado] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Calculate new registrations for the current month
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentYear = now.getFullYear();
+
+    const newThisMonthCount = filteredPlayers.filter(p => {
+      if (!p.created_at) return false;
+      const pDate = new Date(p.created_at);
+      return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
+    }).length;
+
+    setStats({
+      total: filteredPlayers.length,
+      byPosition: Object.entries(positions).map(([name, value]) => ({ name, value })),
+      byStatus: Object.entries(status).map(([name, value]) => ({ name, value })),
+      recentPlayers: filteredPlayers.slice(0, 5),
+      newThisMonth: newThisMonthCount
+    });
+  }, [allPlayers, selectedObserver]);
 
   const getStatusCount = (statusName: string) => {
     const found = stats.byStatus.find(s => s.name?.trim().toLowerCase() === statusName.toLowerCase());
@@ -122,6 +147,33 @@ export default function Dashboard() {
             Nuevo Jugador
           </Button>
         </Link>
+      </div>
+
+      {/* Filtro por Observador */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-slate-900/40 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-600/10 text-blue-500 rounded-xl">
+            <Users className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-300">Observador</p>
+            <p className="text-[10px] text-slate-500 font-medium">Panel de control adaptado al observador seleccionado.</p>
+          </div>
+        </div>
+        <div className="w-full md:w-72">
+          <Select value={selectedObserver} onValueChange={setSelectedObserver}>
+            <SelectTrigger className="bg-slate-950 border-slate-805 text-white w-full rounded-xl">
+              <SelectValue placeholder="Todos los Observadores" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-950 border-slate-805 text-white">
+              <SelectItem value="all" className="font-bold text-blue-400">Todos los Observadores</SelectItem>
+              <SelectItem value="none" className="italic text-slate-500">Sin especificar / Ninguno</SelectItem>
+              {observers.map((obs) => (
+                <SelectItem key={obs.id} value={obs.nombre}>{obs.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
