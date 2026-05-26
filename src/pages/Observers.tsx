@@ -296,14 +296,14 @@ export default function Observers() {
                             <div className="flex items-center gap-2.5">
                               {isEditing ? (
                                 <div className="flex items-center gap-3 w-full">
-                                  <div className="relative w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 group">
+                                  <div className="relative w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 group">
                                     {editingPhoto ? (
                                       <img src={editingPhoto} className="w-full h-full object-cover" />
                                     ) : (
-                                      <Camera className="w-4 h-4 text-slate-500" />
+                                      <Camera className="w-5 h-5 text-slate-500" />
                                     )}
                                     <label htmlFor={`edit-photo-${obs.id}`} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                      <UploadCloud className="w-3.5 h-3.5 text-white" />
+                                      <UploadCloud className="w-4 h-4 text-white" />
                                     </label>
                                     <input
                                       id={`edit-photo-${obs.id}`}
@@ -323,7 +323,7 @@ export default function Observers() {
                                       }}
                                     />
                                   </div>
-                                  <div className="flex-1 flex flex-col gap-1">
+                                  <div className="flex-1 flex flex-col gap-1.5 justify-center">
                                     <Input
                                       value={editingName}
                                       onChange={(e) => setEditingName(e.target.value)}
@@ -334,15 +334,25 @@ export default function Observers() {
                                         if (e.key === 'Escape') handleCancelEdit();
                                       }}
                                     />
-                                    {editingPhoto && (
-                                      <button 
-                                        type="button" 
-                                        onClick={() => setEditingPhoto('')} 
-                                        className="text-[10px] text-red-400 hover:text-red-300 font-bold text-left w-fit"
-                                      >
-                                        Quitar foto
-                                      </button>
-                                    )}
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <label htmlFor={`edit-photo-${obs.id}`} className="text-blue-400 hover:text-blue-300 font-bold cursor-pointer flex items-center gap-1 transition-colors">
+                                        <UploadCloud className="w-3.5 h-3.5" />
+                                        <span>Subir/Cambiar Foto</span>
+                                      </label>
+                                      {editingPhoto && (
+                                        <>
+                                          <span className="text-slate-700">|</span>
+                                          <button 
+                                            type="button" 
+                                            onClick={() => setEditingPhoto('')} 
+                                            className="text-red-400 hover:text-red-300 font-bold flex items-center gap-1 transition-colors"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            <span>Quitar Foto</span>
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               ) : (

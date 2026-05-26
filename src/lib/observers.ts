@@ -151,9 +151,9 @@ export async function updateObserver(id: string, nombre: string, foto_url?: stri
   if (!trimmedName) throw new Error('El nombre del observador no puede estar vacío');
 
   try {
-    const updatePayload: Partial<Observer> = { nombre: trimmedName };
+    const updatePayload: any = { nombre: trimmedName };
     if (foto_url !== undefined) {
-      updatePayload.foto_url = foto_url;
+      updatePayload.foto_url = foto_url || null;
     }
 
     const { data, error } = await supabase
@@ -221,7 +221,7 @@ export async function updateObserver(id: string, nombre: string, foto_url?: stri
 
   const updatedObj = { ...list[index], nombre: trimmedName };
   if (foto_url !== undefined) {
-    updatedObj.foto_url = foto_url;
+    updatedObj.foto_url = foto_url || undefined;
   }
   
   list[index] = updatedObj;
