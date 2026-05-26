@@ -360,6 +360,18 @@ export default function PlayerDetail() {
                     {player.fecha_seguimiento ? format(new Date(player.fecha_seguimiento), "EEEE, d 'de' MMMM", { locale: es }) : 'No programado'}
                  </p>
                </div>
+               {player.observador && (
+                 <>
+                   <Separator className="bg-white/10" />
+                   <div className="space-y-1">
+                     <p className="text-[10px] text-blue-200 uppercase font-black tracking-widest">Observador / Scout</p>
+                     <p className="text-lg font-bold flex items-center gap-2">
+                        <Users className="w-5 h-5 text-white/70" />
+                        {player.observador}
+                     </p>
+                   </div>
+                 </>
+               )}
                {player.telefono ? (
                  <div className="grid grid-cols-2 gap-3 mt-4">
                    <a 

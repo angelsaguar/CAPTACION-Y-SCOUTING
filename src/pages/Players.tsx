@@ -322,6 +322,13 @@ export default function Players() {
                   </div>
                   <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">{player.equipo_actual}</span>
                 </div>
+
+                {player.observador && (
+                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase tracking-wider pb-1">
+                    <span>Obs:</span>
+                    <span className="text-slate-300 font-black truncate max-w-[150px]">{player.observador}</span>
+                  </div>
+                )}
                 
                 <div className="flex gap-2">
                   <Link to={`/players/${player.id}`} className="flex-1">
@@ -367,6 +374,7 @@ export default function Players() {
                 <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Nombre Completo</TableHead>
                 <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Posición</TableHead>
                 <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Equipo</TableHead>
+                <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Observador</TableHead>
                 <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Estado</TableHead>
                 <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Potencial</TableHead>
                 <TableHead className="text-slate-500 font-bold uppercase text-[10px]">Media</TableHead>
@@ -392,6 +400,9 @@ export default function Players() {
                     <Badge variant="outline" className="font-bold text-[10px] uppercase border-slate-700 text-slate-400">{player.posicion}</Badge>
                   </TableCell>
                   <TableCell className="text-slate-500 text-sm">{player.equipo_actual}</TableCell>
+                  <TableCell className="text-slate-400 font-bold text-xs truncate max-w-[120px]">
+                    {player.observador || <span className="text-slate-600 font-medium">-</span>}
+                  </TableCell>
                   <TableCell>
                     <Badge className={cn("border-none text-white text-[10px] font-black uppercase", getStatusColor(player.estado))}>
                       {player.estado}

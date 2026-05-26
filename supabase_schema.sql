@@ -26,7 +26,15 @@ CREATE TABLE IF NOT EXISTS public.players (
     fecha_seguimiento DATE,
     potencial INTEGER DEFAULT 1,
     estado TEXT NOT NULL DEFAULT 'Observado',
+    observador TEXT,
     created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2b. Create Observers table
+CREATE TABLE IF NOT EXISTS public.observers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -44,6 +52,20 @@ CREATE TABLE IF NOT EXISTS public.player_attributes (
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_attributes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.observers ENABLE ROW LEVEL SECURITY;
+
+-- 4b. Policies for Observers
+DROP POLICY IF EXISTS "Anyone can view observers" ON public.observers;
+CREATE POLICY "Anyone can view observers" ON public.observers
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can insert observers" ON public.observers;
+CREATE POLICY "Authenticated users can insert observers" ON public.observers
+    FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can delete observers" ON public.observers;
+CREATE POLICY "Authenticated users can delete observers" ON public.observers
+    FOR DELETE TO authenticated USING (true);
 
 -- 5. Policies for Users
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;

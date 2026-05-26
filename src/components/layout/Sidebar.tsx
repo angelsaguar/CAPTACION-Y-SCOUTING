@@ -22,6 +22,7 @@ import UDLaPovedaLogo from './UDLaPovedaLogo';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Jugadores', path: '/players' },
+  { icon: UsersRound, label: 'Scouters', path: '/observers' },
   { icon: Search, label: 'Comparador', path: '/comparison' },
   { icon: TrendingUp, label: 'Analítica', path: '/analytics' },
 ];

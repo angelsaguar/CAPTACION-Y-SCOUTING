@@ -15,6 +15,7 @@ import Analytics from '@/pages/Analytics';
 import Admin from '@/pages/Admin';
 import Profile from '@/pages/Profile';
 import Register from '@/pages/Register';
+import Observers from '@/pages/Observers';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 export default function App() {
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/players/:id/edit" element={<PlayerForm />} />
             <Route path="/comparison" element={<Comparison />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/observers" element={<Observers />} />
             <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} />
             <Route path="/profile" element={<Profile />} />
           </Route>

@@ -9,7 +9,8 @@ import {
   POSITION_ATTRIBUTES, 
   PlayerStatus, 
   ContactType, 
-  Lateralidad 
+  Lateralidad,
+  Observer
 } from '@/types';
 import { 
   Card, 
@@ -34,12 +35,15 @@ import {
   Save, 
   Upload, 
   Loader2,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Plus,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
+import { getObservers, addObserver } from '@/lib/observers';
 
   const playerSchema = z.object({
   nombre: z.string().min(2, 'Nombre requerido'),
@@ -57,6 +61,7 @@ import { cn } from '@/lib/utils';
   fecha_seguimiento: z.string().nullable().optional(),
   potencial: z.number().min(1).max(5),
   estado: z.enum(['Observado', 'En seguimiento', 'Interesa', 'Fichado', 'Rechazado']),
+  observador: z.string().nullable().optional(),
 });
 
 type PlayerFormValues = z.infer<typeof playerSchema>;
@@ -70,6 +75,12 @@ export default function PlayerForm() {
   const [attributes, setAttributes] = useState<Record<string, number>>({});
   const [photo, setPhoto] = useState<File | null>(null);
 
+  // States for dynamic Observers list and mini form
+  const [observers, setObservers] = useState<Observer[]>([]);
+  const [isAddingObs, setIsAddingObs] = useState(false);
+  const [newObsName, setNewObsName] = useState('');
+  const [loadingObs, setLoadingObs] = useState(false);
+
   const form = useForm<PlayerFormValues>({
     resolver: zodResolver(playerSchema),
     defaultValues: {
@@ -81,6 +92,7 @@ export default function PlayerForm() {
       contacto_tipo: 'Padre',
       lateralidad: 'Derecho',
       anio_nacimiento: new Date().getFullYear() - 15,
+      observador: '',
     },
   });
 
@@ -92,6 +104,18 @@ export default function PlayerForm() {
       navigate('/players');
     }
   }, [id, user, navigate]);
+
+  useEffect(() => {
+    async function loadObserversList() {
+      try {
+        const list = await getObservers();
+        setObservers(list);
+      } catch (err) {
+        console.error('Failed to load observers list:', err);
+      }
+    }
+    loadObserversList();
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -121,6 +145,7 @@ export default function PlayerForm() {
               fecha_seguimiento: player.fecha_seguimiento || '',
               potencial: player.potencial,
               estado: player.estado as any,
+              observador: player.observador || '',
             });
 
             const attrs: Record<string, number> = {};
@@ -245,6 +270,7 @@ export default function PlayerForm() {
         observaciones: values.observaciones || null,
         motivos_rechazo: values.motivos_rechazo || null,
         anio_nacimiento: values.anio_nacimiento || null,
+        observador: values.observador || null,
         created_by: id ? undefined : user?.id,
       };
 
@@ -488,6 +514,85 @@ export default function PlayerForm() {
                       <SelectItem value="Rechazado" className="text-red-400 font-medium">Rechazado</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="observador" className="text-slate-300">Observador / Scout</Label>
+                    {!isAddingObs ? (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsAddingObs(true)}
+                        className="text-[10px] text-blue-500 hover:text-blue-400 font-bold flex items-center gap-1 uppercase tracking-wider"
+                      >
+                        <Plus className="w-3 h-3" /> Nuevo
+                      </button>
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsAddingObs(false)}
+                        className="text-[10px] text-slate-500 hover:text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wider"
+                      >
+                        <X className="w-3 h-3" /> Cancelar
+                      </button>
+                    )}
+                  </div>
+
+                  {isAddingObs ? (
+                    <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Alta rápida de observador</p>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Nombre del observador" 
+                          value={newObsName}
+                          onChange={(e) => setNewObsName(e.target.value)}
+                          className="bg-slate-900 border-slate-800 h-8 text-xs text-white"
+                        />
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={loadingObs}
+                          onClick={async () => {
+                            if (!newObsName.trim()) {
+                              toast.error('Especifica un nombre');
+                              return;
+                            }
+                            setLoadingObs(true);
+                            try {
+                              const created = await addObserver(newObsName.trim());
+                              setObservers(prev => [...prev.filter(o => o.id !== created.id), created].sort((a,b) => a.nombre.localeCompare(b.nombre)));
+                              form.setValue('observador', created.nombre);
+                              setNewObsName('');
+                              setIsAddingObs(false);
+                              toast.success('Observador registrado y seleccionado');
+                            } catch (err: any) {
+                              toast.error(err.message || 'Error al registrar observador');
+                            } finally {
+                              setLoadingObs(false);
+                            }
+                          }}
+                          className="h-8 text-xs bg-blue-600 hover:bg-blue-500"
+                        >
+                          Añadir
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Select 
+                      value={form.watch('observador') || ''} 
+                      onValueChange={(val: any) => form.setValue('observador', val || '')}
+                    >
+                      <SelectTrigger className="bg-slate-900 border-slate-800 text-white">
+                        <SelectValue placeholder="Seleccionar observador..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none" className="text-slate-500 italic">Sin especificar / Ninguno</SelectItem>
+                        {observers.map((obs) => (
+                          <SelectItem key={obs.id} value={obs.nombre}>{obs.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {form.watch('estado') === 'Rechazado' && (

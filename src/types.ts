@@ -29,10 +29,17 @@ export interface Player {
   fecha_seguimiento?: string;
   potencial: number; // 1-5
   estado: PlayerStatus;
+  observador?: string; // name of the observer/scout
   created_by?: string;
   created_at?: string;
   attributes?: PlayerAttribute[];
   tags?: string[];
+}
+
+export interface Observer {
+  id: string;
+  nombre: string;
+  created_at?: string;
 }
 
 export interface PlayerAttribute {

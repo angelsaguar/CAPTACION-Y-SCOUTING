@@ -8,7 +8,10 @@ import {
   Clock, 
   MapPin, 
   ChevronRight,
-  Plus
+  Plus,
+  Eye,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -91,12 +94,20 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const getStatusCount = (statusName: string) => {
+    const found = stats.byStatus.find(s => s.name?.trim().toLowerCase() === statusName.toLowerCase());
+    return found ? found.value : 0;
+  };
+
   const kpis = [
-    { label: 'Total Jugadores', value: stats.total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: 'En Seguimiento', value: stats.byStatus.find(s => s.name === 'En seguimiento')?.value || 0, icon: Target, color: 'text-red-600', bg: 'bg-red-100' },
-    { label: 'Interesan', value: stats.byStatus.find(s => s.name === 'Interesa')?.value || 0, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-100' },
-    { label: 'Nuevos (Mes)', value: stats.newThisMonth, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-100' },
+    { label: 'Observado', value: getStatusCount('Observado'), icon: Eye, color: 'text-zinc-400', barColor: 'bg-zinc-400' },
+    { label: 'En seguimiento', value: getStatusCount('En seguimiento'), icon: Target, color: 'text-amber-500', barColor: 'bg-amber-500' },
+    { label: 'Interesa', value: getStatusCount('Interesa'), icon: TrendingUp, color: 'text-emerald-500', barColor: 'bg-emerald-500' },
+    { label: 'Fichado', value: getStatusCount('Fichado'), icon: UserCheck, color: 'text-blue-500', barColor: 'bg-blue-500' },
+    { label: 'Rechazado', value: getStatusCount('Rechazado'), icon: UserX, color: 'text-red-500', barColor: 'bg-red-500' },
   ];
+
+  const totalCount = stats.total;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -113,33 +124,33 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi, i) => (
-          <Card key={i} className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{kpi.label}</CardTitle>
-              <div className="bg-slate-800/50 p-1.5 rounded-lg">
-                <kpi.icon className={cn("h-4 w-4", kpi.color)} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end justify-between">
-                <div className="text-4xl font-black text-white italic tracking-tighter">{kpi.value}</div>
-                {kpi.value > 0 && (
-                  <span className={cn(
-                    "text-xs font-bold px-2 py-1 rounded-lg mb-1",
-                    i === 1 ? "bg-red-500/10 text-red-500" : "bg-emerald-500/10 text-emerald-500"
-                  )}>
-                    {i === 1 ? "-4%" : "+12%"}
-                  </span>
-                )}
-              </div>
-              <div className="mt-4 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className={cn("h-full", kpi.color.replace('text-', 'bg-'))} style={{ width: i === 0 ? '70%' : '100%' }}></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {kpis.map((kpi, i) => {
+          const percentage = totalCount > 0 ? Math.round((kpi.value / totalCount) * 100) : 0;
+          return (
+            <Card key={i} className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{kpi.label}</CardTitle>
+                <div className="bg-slate-800/50 p-1.5 rounded-lg">
+                  <kpi.icon className={cn("h-4 w-4", kpi.color)} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end justify-between">
+                  <div className="text-4xl font-black text-white italic tracking-tighter">{kpi.value}</div>
+                  {totalCount > 0 && (
+                    <span className="text-xs font-mono font-bold text-slate-500 mb-1">
+                      {percentage}%
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className={cn("h-full", kpi.barColor)} style={{ width: `${percentage}%` }}></div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 mt-8">

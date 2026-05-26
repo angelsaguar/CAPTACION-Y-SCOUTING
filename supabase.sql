@@ -25,7 +25,15 @@ CREATE TABLE IF NOT EXISTS public.players (
   fecha_seguimiento DATE,
   potencial INTEGER CHECK (potencial >= 1 AND potencial <= 5),
   estado TEXT DEFAULT 'Observado', -- Observado, En seguimiento, Interesa, Fichado
+  observador TEXT,
   created_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Observers table
+CREATE TABLE IF NOT EXISTS public.observers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL UNIQUE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -55,6 +63,17 @@ ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_attributes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.observers ENABLE ROW LEVEL SECURITY;
+
+-- Observers Policies
+DROP POLICY IF EXISTS "Anyone can view observers" ON public.observers;
+CREATE POLICY "Anyone can view observers" ON public.observers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Scouts can insert observers" ON public.observers;
+CREATE POLICY "Scouts can insert observers" ON public.observers FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Scouts can delete observers" ON public.observers;
+CREATE POLICY "Scouts can delete observers" ON public.observers FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Profiles logic (auto-create profile for new users)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
