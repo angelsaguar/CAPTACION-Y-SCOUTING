@@ -10,6 +10,16 @@ const DEFAULT_OBSERVERS: Observer[] = [
 ];
 
 export async function getObservers(): Promise<Observer[]> {
+  const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+  let localList: Observer[] = [];
+  if (cached) {
+    try {
+      localList = JSON.parse(cached);
+    } catch {
+      localList = [];
+    }
+  }
+
   try {
     const { data, error } = await supabase
       .from('observers')
@@ -17,9 +27,17 @@ export async function getObservers(): Promise<Observer[]> {
       .order('nombre');
 
     if (!error && data) {
+      // Merge: Keep database values, but fallback to local cached photo if db photo is missing
+      const merged = data.map((item: any) => {
+        const localItem = localList.find((o) => o.id === item.id);
+        return {
+          ...item,
+          foto_url: item.foto_url || (localItem ? localItem.foto_url : undefined)
+        };
+      });
       // Synchronize to localStorage backup
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-      return data;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
     } else {
       console.warn('Supabase returned error or empty for observers:', error);
     }
@@ -27,19 +45,7 @@ export async function getObservers(): Promise<Observer[]> {
     console.warn('Could not fetch observers from Supabase, falling back to localStorage:', error);
   }
 
-  // Local fallback
-  const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {
-      return DEFAULT_OBSERVERS;
-    }
-  }
-
-  // Save default observers locally
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_OBSERVERS));
-  return DEFAULT_OBSERVERS;
+  return localList.length ? localList : DEFAULT_OBSERVERS;
 }
 
 export async function addObserver(nombre: string, foto_url?: string): Promise<Observer> {
