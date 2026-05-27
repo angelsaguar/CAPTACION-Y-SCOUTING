@@ -8,6 +8,7 @@ import { Observer } from '@/types';
 import { Users, Plus, Trash2, Calendar, Pencil, Check, X, Camera, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 // Image compression and resize helper
 const processImageFile = (file: File): Promise<string> => {
@@ -67,6 +68,9 @@ export default function Observers() {
   const [editingName, setEditingName] = useState('');
   const [editingPhoto, setEditingPhoto] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [observerToDelete, setObserverToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
 
@@ -110,23 +114,32 @@ export default function Observers() {
     }
   };
 
-  const handleDeleteObserver = async (id: string, name: string) => {
+  const requestDeleteObserver = (id: string, name: string) => {
     if (!isAdmin) {
       toast.error('Solo los administradores pueden eliminar scouters.');
       return;
     }
-    if (!confirm(`¿Estás seguro de que deseas eliminar al scouter "${name}"? No borrará informes de jugadores ya asignados.`)) return;
-    
+    setObserverToDelete({ id, name });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteObserver = async () => {
+    if (!observerToDelete) return;
+    setIsDeleting(true);
     try {
-      const success = await deleteObserver(id);
+      const success = await deleteObserver(observerToDelete.id);
       if (success) {
-        setObservers(prev => prev.filter(o => o.id !== id));
+        setObservers(prev => prev.filter(o => o.id !== observerToDelete.id));
         toast.success('Observador eliminado de la lista');
+        setDeleteModalOpen(false);
+        setObserverToDelete(null);
       } else {
         toast.error('No se pudo eliminar el observador');
       }
     } catch (err) {
       toast.error('Error al intentar eliminar');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -415,7 +428,7 @@ export default function Observers() {
                                     <Button 
                                       variant="ghost" 
                                       size="icon" 
-                                      onClick={() => handleDeleteObserver(obs.id, obs.nombre)}
+                                      onClick={() => requestDeleteObserver(obs.id, obs.nombre)}
                                       className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-950/20"
                                       title="Eliminar Scouter"
                                     >
@@ -436,6 +449,20 @@ export default function Observers() {
           </CardContent>
         </Card>
       </div>
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="¿Eliminar Scouter?"
+        message={`¿Estás seguro de que deseas eliminar al scouter "${observerToDelete?.name || ''}"? Esta acción no borrará informes de jugadores ya asignados.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteObserver}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setObserverToDelete(null);
+        }}
+        variant="danger"
+        isSubmitting={isDeleting}
+      />
     </div>
   );
 }

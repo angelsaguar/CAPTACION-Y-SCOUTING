@@ -32,6 +32,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 const POVEDA_TEAMS = [
   'Aficionado A',
@@ -78,6 +79,9 @@ export default function Needs() {
   const [editingSolicitante, setEditingSolicitante] = useState('');
   const [editingObservaciones, setEditingObservaciones] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [needToDelete, setNeedToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filters State
   const [filterTeam, setFilterTeam] = useState('ALL');
@@ -193,23 +197,32 @@ export default function Needs() {
     }
   };
 
-  const handleDeleteNeed = async (id: string) => {
+  const requestDeleteNeed = (id: string) => {
     if (!isAdminOrScout) {
       toast.error('No tienes permisos suficientes.');
       return;
     }
-    if (!confirm('¿Estás seguro de eliminar esta necesidad de captación?')) return;
+    setNeedToDelete(id);
+    setDeleteModalOpen(true);
+  };
 
+  const confirmDeleteNeed = async () => {
+    if (!needToDelete) return;
+    setIsDeleting(true);
     try {
-      const success = await deleteNeed(id);
+      const success = await deleteNeed(needToDelete);
       if (success) {
-        setNeeds(prev => prev.filter(n => n.id !== id));
+        setNeeds(prev => prev.filter(n => n.id !== needToDelete));
         toast.success('Necesidad eliminada de la lista');
+        setDeleteModalOpen(false);
+        setNeedToDelete(null);
       } else {
         toast.error('Error al intentar eliminar');
       }
     } catch (err) {
       toast.error('Error al intentar eliminar');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -513,7 +526,7 @@ export default function Needs() {
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    onClick={() => handleDeleteNeed(need.id)}
+                                    onClick={() => requestDeleteNeed(need.id)}
                                     className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-950/20"
                                     title="Eliminar necesidad"
                                   >
@@ -550,6 +563,20 @@ export default function Needs() {
           </Card>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="¿Eliminar necesidad?"
+        message="¿Estás seguro de que deseas eliminar esta necesidad de la lista del club?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteNeed}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setNeedToDelete(null);
+        }}
+        variant="danger"
+        isSubmitting={isDeleting}
+      />
     </div>
   );
 }

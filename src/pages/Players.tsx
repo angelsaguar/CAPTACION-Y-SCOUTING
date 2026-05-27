@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 export default function Players() {
   const navigate = useNavigate();
@@ -61,6 +62,9 @@ export default function Players() {
   const [filterPosition, setFilterPosition] = useState<string>('');
   const [filterLateralidad, setFilterLateralidad] = useState<string>('');
   const [filterBirthYear, setFilterBirthYear] = useState<string>('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchPlayers = async () => {
     setLoading(true);
@@ -97,20 +101,29 @@ export default function Players() {
     fetchPlayers();
   }, [search, filterStatus, filterPosition, filterLateralidad, filterBirthYear]);
 
-  const handleDelete = async (id: string) => {
+  const requestDelete = (id: string) => {
     if (!isAdmin) {
       toast.error('No tienes permisos para eliminar jugadores');
       return;
     }
-    if (!confirm('¿Estás seguro de que deseas eliminar este jugador?')) return;
-    
+    setPlayerToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!playerToDelete) return;
+    setIsDeleting(true);
     try {
-      const { error } = await supabase.from('players').delete().eq('id', id);
+      const { error } = await supabase.from('players').delete().eq('id', playerToDelete);
       if (error) throw error;
       toast.success('Jugador eliminado');
+      setDeleteModalOpen(false);
+      setPlayerToDelete(null);
       fetchPlayers();
     } catch (error) {
       toast.error('Error al eliminar jugador');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -352,8 +365,8 @@ export default function Players() {
                             <Edit2 className="w-4 h-4 mr-2" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            className="text-red-600 focus:text-red-600"
-                            onClick={() => handleDelete(player.id)}
+                            className="text-red-600 focus:text-red-600 cursor-pointer"
+                            onClick={() => requestDelete(player.id)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" /> Eliminar
                           </DropdownMenuItem>
@@ -462,7 +475,7 @@ export default function Players() {
                         variant="ghost" 
                         size="icon" 
                         className={cn("h-10 w-10 text-slate-500 hover:text-red-500 hover:bg-slate-800 rounded-xl", !isAdmin && "hidden")}
-                        onClick={() => handleDelete(player.id)}
+                        onClick={() => requestDelete(player.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -475,6 +488,20 @@ export default function Players() {
           </div>
         </Card>
       )}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="¿Eliminar jugador?"
+        message="¿Estás seguro de que deseas eliminar este jugador de forma permanente? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setPlayerToDelete(null);
+        }}
+        variant="danger"
+        isSubmitting={isDeleting}
+      />
     </div>
   );
 }
