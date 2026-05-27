@@ -13,7 +13,8 @@ import {
   Plus,
   X,
   ChevronLeft,
-  ClipboardList
+  ClipboardList,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const menuItems = [
   { icon: Trophy, label: 'Necesidades', path: '/needs' },
   { icon: ClipboardList, label: 'Entrenadores', path: '/coaches' },
   { icon: Search, label: 'Comparador', path: '/comparison' },
+  { icon: Shield, label: 'Campograma', path: '/campograma' },
   { icon: TrendingUp, label: 'Analítica', path: '/analytics' },
 ];
 

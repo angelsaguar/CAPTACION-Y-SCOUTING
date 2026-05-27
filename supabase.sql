@@ -185,3 +185,28 @@ BEGIN
     (SELECT json_object_agg(lateralidad, count) FROM (SELECT lateralidad, count(*) FROM public.players GROUP BY lateralidad) s);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 9. Create Tactics (Campograma state) table
+CREATE TABLE IF NOT EXISTS public.tactics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    season TEXT NOT NULL,
+    team TEXT NOT NULL,
+    roster JSONB NOT NULL DEFAULT '[]'::jsonb,
+    lineup JSONB NOT NULL DEFAULT '{}'::jsonb,
+    formation TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    UNIQUE(season, team)
+);
+
+-- Enable RLS for tactics
+ALTER TABLE public.tactics ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view tactics" ON public.tactics;
+CREATE POLICY "Anyone can view tactics" ON public.tactics
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can insert/update tactics" ON public.tactics;
+CREATE POLICY "Authenticated users can insert/update tactics" ON public.tactics
+    FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
