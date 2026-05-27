@@ -217,6 +217,49 @@ export default function Campograma() {
     return cleanD;
   };
 
+  // Helper to format/retrieve display name containing only first name and first last name, to keep it compact on the pitch
+  const formatCompactName = (fullName: string): string => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length <= 2) return parts.join(' ');
+
+    const first = parts[0];
+    const second = parts[1];
+    const third = parts[2] || '';
+    const fourth = parts[3] || '';
+
+    const particles = ['de', 'del', 'la', 'las', 'los', 'da', 'do', 'y'];
+    const compoundSeconds = [
+      'carlos', 'antonio', 'manuel', 'luis', 'jose', 'josé', 'maría', 'maria', 
+      'miguel', 'angel', 'ángel', 'javier', 'david', 'alberto', 'francisco', 
+      'ramon', 'ramón', 'jesus', 'jesús', 'ignacio', 'fernando', 'alejandro'
+    ];
+
+    // Case 1: First name is compound, e.g. "Juan Carlos García Pérez" (length >= 3)
+    if (compoundSeconds.includes(second.toLowerCase()) && !particles.includes(second.toLowerCase())) {
+      if (third && particles.includes(third.toLowerCase())) {
+        if (fourth && particles.includes(fourth.toLowerCase()) && parts[4]) {
+          return `${first} ${second} ${third} ${fourth} ${parts[4]}`;
+        }
+        if (fourth) {
+          return `${first} ${second} ${third} ${fourth}`;
+        }
+      }
+      return `${first} ${second} ${third}`;
+    }
+
+    // Case 2: Particles in the first surname, e.g. "Juan de la Rosa"
+    if (particles.includes(second.toLowerCase())) {
+      if (third && particles.includes(third.toLowerCase()) && fourth) {
+        return `${first} ${second} ${third} ${fourth}`;
+      }
+      return `${first} ${second} ${third}`;
+    }
+
+    // Case 3: Standard 3+ words like "Alejandro Ramos Fernández" -> "Alejandro Ramos"
+    return `${first} ${second}`;
+  };
+
   // Selected state
   const [selectedSeason, setSelectedSeason] = useState<string>(() => {
     return localStorage.getItem('ud_lapoveda_tactics_selected_season_v1') || '25/26';
@@ -1282,7 +1325,7 @@ export default function Campograma() {
                                 key={p.id} 
                                 className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wide border bg-slate-950 text-white border-blue-500/30 align-middle flex items-center justify-center gap-1 shadow-md whitespace-nowrap"
                               >
-                                {dText ? `[${dText}] ` : ''}{p.nombre}
+                                {dText ? `[${dText}] ` : ''}{formatCompactName(p.nombre)}
                               </span>
                             );
                           })
