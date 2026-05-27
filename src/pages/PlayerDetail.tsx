@@ -21,7 +21,8 @@ import {
   Users,
   TrendingUp,
   Download,
-  MessageSquare
+  MessageSquare,
+  Mail
 } from 'lucide-react';
 import { 
   Radar, 
@@ -87,9 +88,12 @@ export default function PlayerDetail() {
     doc.text(`Informe de Scouting: ${player.nombre} ${player.apellidos}`, 10, 20);
     doc.setFontSize(14);
     doc.text(`Posicion: ${player.posicion}`, 10, 30);
-    doc.text(`Equipo: ${player.equipo_actual}`, 10, 40);
-    doc.text(`Potencial: ${player.potencial}/5`, 10, 50);
-    doc.text(`Estado: ${player.estado}`, 10, 60);
+    doc.text(`Equipo Procedencia: ${player.equipo_actual || '-'}`, 10, 40);
+    if (player.equipo_asignado) {
+      doc.text(`Equipo Asignado Club: ${player.equipo_asignado}`, 10, 48);
+    }
+    doc.text(`Potencial: ${player.potencial}/5`, 10, 56);
+    doc.text(`Estado: ${player.estado}`, 10, 64);
     doc.text('Observaciones:', 10, 80);
     doc.setFontSize(10);
     const splitObs = doc.splitTextToSize(player.observaciones || 'Sin observaciones', 180);
@@ -104,7 +108,8 @@ export default function PlayerDetail() {
       { Campo: 'Nombre', Valor: player.nombre },
       { Campo: 'Apellidos', Valor: player.apellidos },
       { Campo: 'Posicion', Valor: player.posicion },
-      { Campo: 'Equipo', Valor: player.equipo_actual },
+      { Campo: 'Equipo Procedencia', Valor: player.equipo_actual },
+      { Campo: 'Equipo Asignado Club', Valor: player.equipo_asignado || '-' },
       { Campo: 'Potencial', Valor: player.potencial },
       { Campo: 'Estado', Valor: player.estado },
       ... (player.attributes?.map(a => ({ Campo: a.atributo, Valor: a.valor })) || [])
@@ -179,6 +184,11 @@ export default function PlayerDetail() {
               <div className="flex flex-wrap items-center gap-y-1 gap-x-3 mt-1.5 text-[9px] sm:text-[10px] text-slate-500 font-black uppercase tracking-widest">
                 <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {player.posicion}</span>
                 <span className="flex items-center gap-1"><Trophy className="w-3 h-3" /> {player.equipo_actual || 'Sin club'}</span>
+                {player.equipo_asignado && (
+                  <span className="flex items-center gap-1 text-emerald-400 bg-emerald-950/20 border border-emerald-500/10 px-1.5 py-0.5 rounded-md text-[9px] font-bold">
+                    UD Poveda: {player.equipo_asignado}
+                  </span>
+                )}
                 {player.anio_nacimiento && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Gen {player.anio_nacimiento}</span>}
               </div>
             </div>
@@ -352,6 +362,18 @@ export default function PlayerDetail() {
                     {player.telefono || 'Sin teléfono'}
                  </p>
                </div>
+               {player.email && (
+                 <>
+                   <Separator className="bg-white/10" />
+                   <div className="space-y-1">
+                     <p className="text-[10px] text-blue-200 uppercase font-black tracking-widest">Email {player.contacto_tipo ? `(${player.contacto_tipo})` : ''}</p>
+                     <p className="text-base font-bold flex items-center gap-2 tracking-tight break-all">
+                        <Mail className="w-5 h-5 text-white/70 shrink-0" />
+                        <a href={`mailto:${player.email}`} className="hover:underline">{player.email}</a>
+                     </p>
+                   </div>
+                 </>
+               )}
                <Separator className="bg-white/10" />
                <div className="space-y-1">
                  <p className="text-[10px] text-blue-200 uppercase font-black tracking-widest">Próximo Seguimiento</p>

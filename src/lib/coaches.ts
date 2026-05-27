@@ -64,7 +64,9 @@ export async function addCoach(
   categoria: string,
   edad?: number,
   observaciones?: string,
-  created_by?: string
+  created_by?: string,
+  equipo_asignado?: string,
+  email?: string
 ): Promise<Coach> {
   const trimmedNombre = nombre.trim();
   const trimmedClub = club.trim();
@@ -87,7 +89,9 @@ export async function addCoach(
     equipo: trimmedEquipo,
     categoria: trimmedCategoria,
     edad: edad || undefined,
+    email: email?.trim() || undefined,
     observaciones: observaciones?.trim() || '',
+    equipo_asignado: equipo_asignado || undefined,
     created_by,
     created_at: new Date().toISOString()
   };
@@ -103,6 +107,23 @@ export async function addCoach(
       await getCoaches();
       return data;
     }
+    
+    // Fallback if equipo_asignado or email column is missing in older database tables
+    if (error && (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
+      console.warn('Supabase coach insert failed due to missing columns, retrying with fallback...');
+      const { equipo_asignado, email: fallbackEmail, ...retryCoach } = newCoach;
+      const { data: retryData, error: retryError } = await supabase
+        .from('coaches')
+        .insert([retryCoach])
+        .select()
+        .single();
+        
+      if (!retryError && retryData) {
+        await getCoaches();
+        return retryData;
+      }
+    }
+
     if (error) {
       console.warn('Supabase insert coach failed, trying offline-first fallback:', error);
     }
@@ -135,7 +156,9 @@ export async function updateCoach(
   equipo: string,
   categoria: string,
   edad?: number,
-  observaciones?: string
+  observaciones?: string,
+  equipo_asignado?: string,
+  email?: string
 ): Promise<Coach> {
   const trimmedNombre = nombre.trim();
   const trimmedClub = club.trim();
@@ -147,13 +170,15 @@ export async function updateCoach(
   if (!trimmedEquipo) throw new Error('El equipo es obligatorio');
   if (!trimmedCategoria) throw new Error('La categoría es obligatoria');
 
-  const updatePayload = {
+  const updatePayload: any = {
     nombre: trimmedNombre,
     club: trimmedClub,
     equipo: trimmedEquipo,
     categoria: trimmedCategoria,
     edad: edad || null,
-    observaciones: observaciones?.trim() || ''
+    email: email?.trim() || null,
+    observaciones: observaciones?.trim() || '',
+    equipo_asignado: equipo_asignado || null
   };
 
   try {
@@ -168,6 +193,24 @@ export async function updateCoach(
       await getCoaches();
       return data;
     }
+    
+    // Fallback if equipo_asignado or email column is missing
+    if (error && (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
+      console.warn('Supabase coach update failed due to missing columns, retrying with fallback...');
+      const { equipo_asignado, email: fallbackEmail, ...retryPayload } = updatePayload;
+      const { data: retryData, error: retryError } = await supabase
+        .from('coaches')
+        .update(retryPayload)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (!retryError && retryData) {
+        await getCoaches();
+        return retryData;
+      }
+    }
+
     if (error) {
       console.warn('Supabase update coach failed, using fallback:', error);
     }

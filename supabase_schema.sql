@@ -14,8 +14,10 @@ CREATE TABLE IF NOT EXISTS public.players (
     nombre TEXT NOT NULL,
     apellidos TEXT NOT NULL,
     telefono TEXT,
+    email TEXT,
     contacto_tipo TEXT,
     equipo_actual TEXT,
+    equipo_asignado TEXT,
     dorsal TEXT,
     posicion TEXT NOT NULL,
     lateralidad TEXT,
@@ -58,7 +60,9 @@ CREATE TABLE IF NOT EXISTS public.coaches (
     equipo TEXT NOT NULL,
     categoria TEXT NOT NULL,
     edad INTEGER,
+    email TEXT,
     observaciones TEXT,
+    equipo_asignado TEXT,
     created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -216,6 +220,8 @@ CREATE POLICY "Anyone can view tactics" ON public.tactics
     FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can insert/update tactics" ON public.tactics;
-CREATE POLICY "Authenticated users can insert/update tactics" ON public.tactics
-    FOR ALL TO authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Anyone can insert/update/delete tactics" ON public.tactics;
+DROP POLICY IF EXISTS "Anyone can insert/update tactics" ON public.tactics;
+CREATE POLICY "Anyone can insert/update tactics" ON public.tactics
+    FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 

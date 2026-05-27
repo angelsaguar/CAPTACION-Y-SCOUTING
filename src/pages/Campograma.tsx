@@ -326,10 +326,12 @@ export default function Campograma() {
   const [isSupabaseSynced, setIsSupabaseSynced] = useState(true);
   const [isSavingSupabase, setIsSavingSupabase] = useState(false);
   const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
+  const [supabaseErrorMsg, setSupabaseErrorMsg] = useState<string | null>(null);
 
   // Load tactics from Supabase to local state
   const loadTacticsFromSupabase = async (silent = false) => {
     setIsLoadingSupabase(true);
+    setSupabaseErrorMsg(null);
     try {
       const { data, error } = await supabase
         .from('tactics')
@@ -339,8 +341,9 @@ export default function Campograma() {
         .maybeSingle();
 
       if (error) {
+        console.error("Supabase load error:", error);
+        setSupabaseErrorMsg(`Error de carga: ${error.message} (${error.code || ''})`);
         if (!silent) {
-          console.error(error);
           toast.error('Error al conectar con Supabase. Revisa si has creado la tabla o si tu conexión es correcta.');
         }
         return;
@@ -372,6 +375,7 @@ export default function Campograma() {
         localStorage.setItem(`ud_lapoveda_tactics_formations_v1_${selectedSeason}`, JSON.stringify(parsed));
 
         setIsSupabaseSynced(true);
+        setSupabaseErrorMsg(null);
         if (!silent) {
           toast.success('¡Alineación y plantilla cargadas con éxito desde Supabase!');
         }
@@ -380,7 +384,9 @@ export default function Campograma() {
           toast.info('No se encontraron alineaciones en la nube para este equipo, usando datos locales.');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Catch in loading:", err);
+      setSupabaseErrorMsg(err?.message || 'Error de conexión');
       if (!silent) {
         toast.error('No se pudo establecer conexión con tu Supabase para cargar.');
       }
@@ -391,6 +397,7 @@ export default function Campograma() {
 
   const saveTacticsToSupabase = async () => {
     setIsSavingSupabase(true);
+    setSupabaseErrorMsg(null);
     try {
       const { error } = await supabase
         .from('tactics')
@@ -407,25 +414,51 @@ export default function Campograma() {
           { onConflict: 'season,team' }
         );
 
-      if (error) {
-        console.error(error);
-        if (error.code === '42P01') {
-          // Table doesn't exist
+      let actualError = error;
+
+      if (actualError && actualError.code === '23503') {
+        console.warn("Detected foreign key violation for updated_by. Retrying upsert without updated_by field...");
+        const { error: retryError } = await supabase
+          .from('tactics')
+          .upsert(
+            {
+              season: selectedSeason,
+              team: selectedTeam,
+              roster: rosters[selectedTeam] || [],
+              lineup: lineups[selectedTeam] || {},
+              formation: selectedFormation,
+              updated_at: new Date().toISOString()
+            },
+            { onConflict: 'season,team' }
+          );
+        actualError = retryError;
+      }
+
+      if (actualError) {
+        console.error("Supabase upsert error:", actualError);
+        let errorMsgTxt = actualError.message || 'Error desconocido';
+        if (actualError.code === '42P01') {
+          errorMsgTxt = 'La tabla "tactics" no existe en Supabase. Por favor ejecute la SQL.';
           toast.error(
             'La tabla "tactics" no existe en Supabase. Ejecuta el archivo "supabase_schema.sql" en tu consola.',
             { duration: 8000 }
           );
-        } else if (error.code === '42501') {
-          toast.error('Permiso denegado por políticas RLS. Asegúrate de estar autenticado.');
+        } else if (actualError.code === '42501') {
+          errorMsgTxt = 'RLS denegado. Revisa tus políticas de Supabase.';
+          toast.error('Permiso denegado por políticas RLS. Asegúrate de estar autenticado o de configurar políticas públicas.');
         } else {
-          toast.error(`Error al guardar en Supabase: ${error.message}`);
+          toast.error(`Error al guardar en Supabase: ${actualError.message}`);
         }
+        setSupabaseErrorMsg(errorMsgTxt);
         return;
       }
 
       setIsSupabaseSynced(true);
+      setSupabaseErrorMsg(null);
       toast.success('¡Alineación y plantilla guardadas correctamente en Supabase!');
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Catch in saving:", err);
+      setSupabaseErrorMsg(err?.message || 'Error de conexión');
       toast.error('No se pudo establecer conexión con tu Supabase para guardar.');
     } finally {
       setIsSavingSupabase(false);
@@ -1085,21 +1118,28 @@ export default function Campograma() {
 
         {/* Supabase Cloud Sync Actions */}
         <div className="border-t border-slate-900/60 pt-4 mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-            {isLoadingSupabase ? (
-              <span className="flex items-center gap-1.5 text-blue-400">
-                <Database className="w-3.5 h-3.5 animate-pulse" />
-                Conectando a Supabase...
-              </span>
-            ) : isSupabaseSynced ? (
-              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                <Cloud className="w-3.5 h-3.5" />
-                Supabase: Guardado en la nube
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-amber-400 font-semibold animate-pulse">
-                <CloudOff className="w-3.5 h-3.5" />
-                Supabase: Tienes cambios locales pendientes de guardar
+          <div className="flex flex-col items-start gap-1">
+            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+              {isLoadingSupabase ? (
+                <span className="flex items-center gap-1.5 text-blue-400">
+                  <Database className="w-3.5 h-3.5 animate-pulse" />
+                  Conectando a Supabase...
+                </span>
+              ) : isSupabaseSynced ? (
+                <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Cloud className="w-3.5 h-3.5" />
+                  Supabase: Guardado en la nube
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-amber-400 font-semibold animate-pulse">
+                  <CloudOff className="w-3.5 h-3.5" />
+                  Supabase: Tienes cambios locales pendientes de guardar
+                </span>
+              )}
+            </div>
+            {supabaseErrorMsg && (
+              <span className="text-[11px] text-red-400 font-sans font-medium">
+                ⚠️ {supabaseErrorMsg}
               </span>
             )}
           </div>

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { getCoaches, addCoach, updateCoach, deleteCoach } from '@/lib/coaches';
-import { Coach } from '@/types';
+import { Coach, CLUB_TEAMS } from '@/types';
 import { 
   Plus, 
   Trash2, 
@@ -20,7 +20,8 @@ import {
   Briefcase,
   Layers,
   Sparkles,
-  ClipboardList
+  ClipboardList,
+  Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -37,7 +38,9 @@ export default function Coaches() {
   const [equipo, setEquipo] = useState('');
   const [categoria, setCategoria] = useState('');
   const [edad, setEdad] = useState<string>('');
+  const [email, setEmail] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [equipoAsignado, setEquipoAsignado] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Edit State
@@ -47,7 +50,9 @@ export default function Coaches() {
   const [editingEquipo, setEditingEquipo] = useState('');
   const [editingCategoria, setEditingCategoria] = useState('');
   const [editingEdad, setEditingEdad] = useState<string>('');
+  const [editingEmail, setEditingEmail] = useState('');
   const [editingObservaciones, setEditingObservaciones] = useState('');
+  const [editingEquipoAsignado, setEditingEquipoAsignado] = useState('');
   const [updating, setUpdating] = useState(false);
 
   // Search State
@@ -104,7 +109,9 @@ export default function Coaches() {
         categoria,
         parsedEdad,
         observaciones,
-        user?.id
+        user?.id,
+        equipoAsignado,
+        email
       );
       setCoaches(prev => [created, ...prev]);
       setNombre('');
@@ -112,7 +119,9 @@ export default function Coaches() {
       setEquipo('');
       setCategoria('');
       setEdad('');
+      setEmail('');
       setObservaciones('');
+      setEquipoAsignado('');
       toast.success('Entrenador registrado para seguimiento');
     } catch (err: any) {
       toast.error(err.message || 'Error al guardar el entrenador');
@@ -128,7 +137,9 @@ export default function Coaches() {
     setEditingEquipo(coach.equipo);
     setEditingCategoria(coach.categoria);
     setEditingEdad(coach.edad ? coach.edad.toString() : '');
+    setEditingEmail(coach.email || '');
     setEditingObservaciones(coach.observaciones || '');
+    setEditingEquipoAsignado(coach.equipo_asignado || '');
   };
 
   const handleCancelEdit = () => {
@@ -167,7 +178,9 @@ export default function Coaches() {
         editingEquipo,
         editingCategoria,
         parsedEdad,
-        editingObservaciones
+        editingObservaciones,
+        editingEquipoAsignado,
+        editingEmail
       );
       setCoaches(prev => prev.map(c => c.id === id ? updated : c));
       setEditingId(null);
@@ -305,6 +318,35 @@ export default function Coaches() {
                     onChange={(e) => setEdad(e.target.value)}
                     className="bg-slate-900 border-slate-805 text-white placeholder-slate-550 text-sm focus-visible:ring-indigo-600"
                   />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Correo Electrónico</label>
+                  <Input
+                    type="email"
+                    placeholder="Ej. entrenador@correo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-slate-900 border-slate-805 text-white placeholder-slate-550 text-sm focus-visible:ring-indigo-600"
+                  />
+                </div>
+
+                {/* Equipo Asignado del Club */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Equipo Asignado del Club</label>
+                  <select
+                    value={equipoAsignado}
+                    onChange={(e) => setEquipoAsignado(e.target.value)}
+                    className="w-full h-10 bg-slate-900 border border-slate-805 rounded-md text-white px-3 text-sm focus-visible:ring-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900 text-slate-400">Sin asignar (Ninguno)</option>
+                    {CLUB_TEAMS.map((team) => (
+                      <option key={team} value={team} className="bg-slate-900 text-white">
+                        {team}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Observaciones */}
@@ -461,6 +503,34 @@ export default function Coaches() {
                                   className="h-8 py-1 bg-slate-900 border-slate-700 text-white text-xs"
                                 />
                               </div>
+
+                              {/* Email */}
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-bold uppercase text-slate-400">Email</span>
+                                <Input
+                                  type="email"
+                                  value={editingEmail}
+                                  onChange={(e) => setEditingEmail(e.target.value)}
+                                  className="h-8 py-1 bg-slate-900 border-slate-700 text-white text-xs"
+                                />
+                              </div>
+
+                              {/* Equipo Asignado */}
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-bold uppercase text-slate-400">Equipo Asignado del Club</span>
+                                <select
+                                  value={editingEquipoAsignado}
+                                  onChange={(e) => setEditingEquipoAsignado(e.target.value)}
+                                  className="h-8 py-1 bg-slate-900 border border-slate-700 rounded text-white text-xs px-2 cursor-pointer w-full focus-visible:ring-indigo-600 focus:outline-none"
+                                >
+                                  <option value="">Sin asignar (Ninguno)</option>
+                                  {CLUB_TEAMS.map((team) => (
+                                    <option key={team} value={team}>
+                                      {team}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
 
                             {/* Observations */}
@@ -512,6 +582,17 @@ export default function Coaches() {
                                   <Badge className="bg-slate-905 text-slate-300 font-bold border border-slate-800 text-[10px] rounded-md px-2 py-0.5">
                                     {coach.equipo} ({coach.categoria})
                                   </Badge>
+                                  {coach.equipo_asignado && (
+                                    <Badge className="bg-emerald-950/40 text-emerald-400 font-extrabold border border-emerald-500/25 text-[10px] rounded-md px-2 py-0.5 uppercase">
+                                      Asignado: {coach.equipo_asignado}
+                                    </Badge>
+                                  )}
+                                  {coach.email && (
+                                    <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-indigo-300 font-semibold bg-indigo-950/40 border border-indigo-500/20 px-2.5 py-0.5 rounded-md w-fit mt-1">
+                                      <Mail className="w-3 h-3 text-indigo-400 shrink-0" />
+                                      <a href={`mailto:${coach.email}`} className="hover:underline">{coach.email}</a>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 

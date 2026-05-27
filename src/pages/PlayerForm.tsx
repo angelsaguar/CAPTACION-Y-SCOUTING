@@ -10,7 +10,8 @@ import {
   PlayerStatus, 
   ContactType, 
   Lateralidad,
-  Observer
+  Observer,
+  CLUB_TEAMS
 } from '@/types';
 import { 
   Card, 
@@ -49,8 +50,10 @@ import { getObservers, addObserver } from '@/lib/observers';
   nombre: z.string().min(2, 'Nombre requerido'),
   apellidos: z.string().min(2, 'Apellidos requeridos'),
   telefono: z.string().nullable().optional(),
+  email: z.string().email('Correo electrónico no válido').or(z.literal('')).nullable().optional(),
   contacto_tipo: z.enum(['Padre', 'Madre', 'Jugador']),
   equipo_actual: z.string().nullable().optional(),
+  equipo_asignado: z.string().nullable().optional(),
   dorsal: z.string().nullable().optional(),
   posicion: z.string().min(1, 'Posición requerida'),
   lateralidad: z.enum(['Izquierdo', 'Derecho', 'Ambidiestro']),
@@ -93,6 +96,8 @@ export default function PlayerForm() {
       lateralidad: 'Derecho',
       anio_nacimiento: new Date().getFullYear() - 15,
       observador: '',
+      equipo_asignado: '',
+      email: '',
     },
   });
 
@@ -134,8 +139,10 @@ export default function PlayerForm() {
               nombre: player.nombre,
               apellidos: player.apellidos,
               telefono: player.telefono || '',
+              email: player.email || '',
               contacto_tipo: player.contacto_tipo as any,
               equipo_actual: player.equipo_actual || '',
+              equipo_asignado: player.equipo_asignado || '',
               dorsal: player.dorsal || '',
               posicion: player.posicion,
               lateralidad: player.lateralidad as any,
@@ -265,6 +272,7 @@ export default function PlayerForm() {
         foto_url: finalFotoUrl || null,
         fecha_seguimiento: values.fecha_seguimiento || null,
         telefono: values.telefono || null,
+        email: values.email || null,
         equipo_actual: values.equipo_actual || null,
         dorsal: values.dorsal || null,
         observaciones: values.observaciones || null,
@@ -294,10 +302,13 @@ export default function PlayerForm() {
         }
       } catch (dbError: any) {
         const errorMsg = dbError?.message || '';
-        if (errorMsg.includes('observador') || errorMsg.includes('column') || errorMsg.includes('schema cache')) {
-          console.warn('Failing over to insert/update without observador column:', dbError);
-          // Omit observador from payload and retry
-          const { observador, ...fallbackPayload } = playerPayload;
+        const isColumnError = dbError.code === '42703' || errorMsg.includes('column') || errorMsg.includes('schema cache');
+        
+        if (isColumnError) {
+          console.warn('Failing over due to database schema misalignment:', dbError);
+          // Strip out equipo_asignado, observador, and email as safe fallback
+          const { equipo_asignado, observador, email, ...fallbackPayload } = playerPayload;
+          
           if (id) {
             const { error: retryError } = await supabase
               .from('players')
@@ -313,7 +324,16 @@ export default function PlayerForm() {
             if (retryError) throw retryError;
             playerId = retryData.id;
           }
-          toast.warning('Guardado, pero sin asignar observador. Debes ejecutar el script SQL en Supabase para crear este campo.');
+          
+          if (errorMsg.includes('equipo_asignado')) {
+            toast.warning('Guardado, pero sin asignar equipo. Ejecuta las nuevas consultas SQL en Supabase.');
+          } else if (errorMsg.includes('email')) {
+            toast.warning('Guardado, pero sin guardar correo electrónico. Ejecuta las nuevas consultas SQL en Supabase para habilitar este campo.');
+          } else if (errorMsg.includes('observador')) {
+            toast.warning('Guardado, pero sin asignar observador. Ejecuta las nuevas consultas SQL en Supabase.');
+          } else {
+            toast.warning('Guardado con fallback simplificado por columnas pendientes en BD.');
+          }
         } else {
           throw dbError;
         }
@@ -384,10 +404,27 @@ export default function PlayerForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="equipo_actual">Equipo Actual</Label>
                   <Input id="equipo_actual" {...form.register('equipo_actual')} placeholder="Club de procedencia" className="bg-slate-800/40 border-slate-700" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="equipo_asignado">Equipo Asignado del Club</Label>
+                  <Select 
+                    value={form.watch('equipo_asignado') || 'none'} 
+                    onValueChange={(val) => form.setValue('equipo_asignado', val === 'none' ? '' : val)}
+                  >
+                    <SelectTrigger className="bg-slate-800/40 border-slate-700 text-left">
+                      <SelectValue placeholder="Sin asignar (Ninguno)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Sin asignar --</SelectItem>
+                      {CLUB_TEAMS.map(team => (
+                        <SelectItem key={team} value={team}>{team}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dorsal">Dorsal</Label>
@@ -662,6 +699,10 @@ export default function PlayerForm() {
                 <div className="space-y-2">
                   <Label htmlFor="telefono">Teléfono</Label>
                   <Input id="telefono" {...form.register('telefono')} placeholder="+34 ..." />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Correo Electrónico</Label>
+                  <Input id="email" type="email" {...form.register('email')} placeholder="ejemplo@correo.com" />
                 </div>
               </CardContent>
             </Card>

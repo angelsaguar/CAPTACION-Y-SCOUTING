@@ -17,8 +17,10 @@ export interface Player {
   nombre: string;
   apellidos: string;
   telefono?: string;
+  email?: string; // New field for player/family email
   contacto_tipo?: ContactType;
   equipo_actual?: string;
+  equipo_asignado?: string; // New field for assigned team in La Poveda club
   dorsal?: string;
   posicion: string;
   lateralidad?: Lateralidad;
@@ -66,10 +68,32 @@ export interface Coach {
   equipo: string;
   categoria: string;
   edad?: number;
+  email?: string; // New field for coach email
   observaciones?: string;
+  equipo_asignado?: string; // New field for assigned team in La Poveda club
   created_by?: string;
   created_at?: string;
 }
+
+export const CLUB_TEAMS = [
+  'SENIOR MASCULINO',
+  'SENIOR FEMENINO',
+  'JUVENIL A',
+  'JUVENIL B',
+  'CADETE A',
+  'CADETE B',
+  'INFANTIL A',
+  'INFANTIL B',
+  'INFANTIL C',
+  'ALEVIN A F11',
+  'ALEVIN A F7',
+  'ALEVIN B F7',
+  'BENJAMIN A',
+  'BENJAMIN B',
+  'BENJAMIN C',
+  'PRE BENJAMIN A',
+  'PREBENJAMIN B'
+];
 
 export const POSITION_ATTRIBUTES: Record<string, string[]> = {
   PORTERO: ['Reflejos', 'Juego aéreo', '1 contra 1', 'Juego con los pies', 'Colocación', 'Comunicación y liderazgo'],

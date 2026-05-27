@@ -289,7 +289,7 @@ export default function Players() {
                     {player.nombre} {player.apellidos}
                   </p>
                   <p className="text-blue-500 text-[10px] uppercase tracking-[0.2em] font-black mt-0.5">
-                    {player.posicion}
+                    {player.posicion} {player.equipo_asignado ? `• ${player.equipo_asignado}` : ''}
                   </p>
                 </div>
               </div>
@@ -320,7 +320,9 @@ export default function Players() {
                       <span className="text-sm font-black text-blue-400 tracking-tighter">{calculateAverage(player.attributes)}</span>
                     </div>
                   </div>
-                  <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">{player.equipo_actual}</span>
+                  <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">
+                    {player.equipo_actual && `${player.equipo_actual}`} {player.equipo_asignado && <span className="text-emerald-500 font-extrabold normal-case font-sans">({player.equipo_asignado})</span>}
+                  </span>
                 </div>
 
                 {player.observador && (
@@ -399,7 +401,14 @@ export default function Players() {
                   <TableCell>
                     <Badge variant="outline" className="font-bold text-[10px] uppercase border-slate-700 text-slate-400">{player.posicion}</Badge>
                   </TableCell>
-                  <TableCell className="text-slate-500 text-sm">{player.equipo_actual}</TableCell>
+                  <TableCell className="text-slate-500 text-sm">
+                    {player.equipo_actual}
+                    {player.equipo_asignado && (
+                      <span className="block text-[10px] text-emerald-400 font-bold mt-0.5 uppercase tracking-wider">
+                        → {player.equipo_asignado}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-slate-400 font-bold text-xs truncate max-w-[120px]">
                     {player.observador || <span className="text-slate-600 font-medium">-</span>}
                   </TableCell>
