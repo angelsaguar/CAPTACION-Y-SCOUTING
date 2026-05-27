@@ -49,6 +49,19 @@ CREATE TABLE IF NOT EXISTS public.needs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Coaches table
+CREATE TABLE IF NOT EXISTS public.coaches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  club TEXT NOT NULL,
+  equipo TEXT NOT NULL,
+  categoria TEXT NOT NULL,
+  edad INTEGER,
+  observaciones TEXT,
+  created_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Player attributes for valuation (0-5)
 CREATE TABLE IF NOT EXISTS public.player_attributes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -77,6 +90,7 @@ ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.observers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.needs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coaches ENABLE ROW LEVEL SECURITY;
 
 -- Observers Policies
 DROP POLICY IF EXISTS "Anyone can view observers" ON public.observers;
@@ -100,6 +114,19 @@ CREATE POLICY "Scouts can update needs" ON public.needs FOR UPDATE USING (auth.u
 
 DROP POLICY IF EXISTS "Scouts can delete needs" ON public.needs;
 CREATE POLICY "Scouts can delete needs" ON public.needs FOR DELETE USING (auth.uid() IS NOT NULL);
+
+-- Coaches Policies
+DROP POLICY IF EXISTS "Anyone can view coaches" ON public.coaches;
+CREATE POLICY "Anyone can view coaches" ON public.coaches FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Scouts can insert coaches" ON public.coaches;
+CREATE POLICY "Scouts can insert coaches" ON public.coaches FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Scouts can update coaches" ON public.coaches;
+CREATE POLICY "Scouts can update coaches" ON public.coaches FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Scouts can delete coaches" ON public.coaches;
+CREATE POLICY "Scouts can delete coaches" ON public.coaches FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Profiles logic (auto-create profile for new users)
 CREATE OR REPLACE FUNCTION public.handle_new_user()

@@ -12,7 +12,8 @@ import {
   Search,
   Plus,
   X,
-  ChevronLeft
+  ChevronLeft,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const menuItems = [
   { icon: Users, label: 'Jugadores', path: '/players' },
   { icon: UsersRound, label: 'Scouters', path: '/observers' },
   { icon: Trophy, label: 'Necesidades', path: '/needs' },
+  { icon: ClipboardList, label: 'Entrenadores', path: '/coaches' },
   { icon: Search, label: 'Comparador', path: '/comparison' },
   { icon: TrendingUp, label: 'Analítica', path: '/analytics' },
 ];

@@ -184,18 +184,25 @@ export async function updateNeed(
 }
 
 export async function deleteNeed(id: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('needs')
-      .delete()
-      .eq('id', id);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    if (!error) {
-      await getNeeds();
-      return true;
+  if (isUuid) {
+    try {
+      const { error } = await supabase
+        .from('needs')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        await getNeeds().catch(() => {});
+      } else {
+        console.warn('Supabase error while deleting need:', error);
+      }
+    } catch (err) {
+      console.warn('Failed deleting need from Supabase:', err);
     }
-  } catch (err) {
-    console.warn('Failed deleting need from Supabase:', err);
+  } else {
+    console.info('Skipping Supabase delete because ID is not a valid UUID:', id);
   }
 
   // Local fallback
@@ -210,5 +217,5 @@ export async function deleteNeed(id: string): Promise<boolean> {
       return false;
     }
   }
-  return false;
+  return true;
 }

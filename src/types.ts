@@ -59,6 +59,18 @@ export interface PlayerAttribute {
   valor: number; // 0-5
 }
 
+export interface Coach {
+  id: string;
+  nombre: string;
+  club: string;
+  equipo: string;
+  categoria: string;
+  edad?: number;
+  observaciones?: string;
+  created_by?: string;
+  created_at?: string;
+}
+
 export const POSITION_ATTRIBUTES: Record<string, string[]> = {
   PORTERO: ['Reflejos', 'Juego aéreo', '1 contra 1', 'Juego con los pies', 'Colocación', 'Comunicación y liderazgo'],
   CENTRAL: ['Posicionamiento', 'Duelo defensivo', 'Juego aéreo', 'Salida de balón', 'Concentración', 'Velocidad correctiva'],
