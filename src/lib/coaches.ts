@@ -35,8 +35,21 @@ export async function getCoaches(): Promise<Coach[]> {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-      return data;
+      // Preserve local entries that might have failed to insert into Supabase
+      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let localCoaches: Coach[] = [];
+      if (cached) {
+        try {
+          localCoaches = JSON.parse(cached);
+        } catch {}
+      }
+      
+      const remoteIds = new Set(data.map(c => c.id));
+      const unsynced = localCoaches.filter(c => !remoteIds.has(c.id));
+      
+      const merged = [...data, ...unsynced];
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
     } else {
       console.warn('Supabase returned error or empty for coaches:', error);
     }
@@ -74,7 +87,7 @@ export async function addCoach(
   const trimmedEquipo = equipo.trim();
   const trimmedCategoria = categoria.trim();
 
-  if (!trimmedNombre) throw new Error('El nombre del entrenador es obligatorio');
+  if (!trimmedNombre) throw new Error('El nombre del entrenador is obligatorio');
   if (!trimmedClub) throw new Error('El club actual es obligatorio');
   if (!trimmedEquipo) throw new Error('El equipo que dirige es obligatorio');
   if (!trimmedCategoria) throw new Error('La categoría es obligatoria');
@@ -107,24 +120,57 @@ export async function addCoach(
       return data;
     }
     
-    // Fallback if equipo_asignado or email column is missing in older database tables
-    if (error && (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
-      console.warn('Supabase coach insert failed due to missing columns, retrying with fallback...');
-      const { equipo_asignado, email: fallbackEmail, ...retryCoach } = newCoach;
-      const { data: retryData, error: retryError } = await supabase
-        .from('coaches')
-        .insert([retryCoach])
-        .select()
-        .single();
-        
-      if (!retryError && retryData) {
-        await getCoaches();
-        return retryData;
-      }
-    }
-
+    // Fallback if foreign key violation, missing columns, or schema cache issues
     if (error) {
-      console.warn('Supabase insert coach failed, trying offline-first fallback:', error);
+      console.warn('Supabase coach insert failed. Error info:', error);
+      
+      const isFkViolation = error.code === '23503' || error.message?.includes('foreign key') || error.message?.includes('violates foreign key');
+      const isMissingColumn = error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache');
+      
+      if (isFkViolation || isMissingColumn) {
+        console.warn('Retrying coach insert with safe fallback fields...');
+        const retryCoach: any = { ...newCoach };
+        
+        if (isFkViolation) {
+          delete retryCoach.created_by;
+        }
+        if (isMissingColumn) {
+          delete retryCoach.equipo_asignado;
+          delete retryCoach.email;
+        }
+        
+        const { data: retryData, error: retryError } = await supabase
+          .from('coaches')
+          .insert([retryCoach])
+          .select()
+          .single();
+          
+        if (!retryError && retryData) {
+          await getCoaches();
+          return {
+            ...newCoach,
+            ...retryData
+          };
+        }
+        
+        // Double fallback if second insert failed on foreign key constraint with other options
+        if (retryError && (retryError.code === '23503' || retryError.message?.includes('foreign key') || retryError.message?.includes('violates foreign key'))) {
+          delete retryCoach.created_by;
+          const { data: retryData3, error: retryError3 } = await supabase
+            .from('coaches')
+            .insert([retryCoach])
+            .select()
+            .single();
+            
+          if (!retryError3 && retryData3) {
+            await getCoaches();
+            return {
+              ...newCoach,
+              ...retryData3
+            };
+          }
+        }
+      }
     }
   } catch (err) {
     console.warn('Exception inserting coach to Supabase:', err);

@@ -31,8 +31,21 @@ export async function getNeeds(): Promise<Need[]> {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-      return data;
+      // Preserve local entries that might have failed to insert into Supabase
+      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let localNeeds: Need[] = [];
+      if (cached) {
+        try {
+          localNeeds = JSON.parse(cached);
+        } catch {}
+      }
+      
+      const remoteIds = new Set(data.map(n => n.id));
+      const unsynced = localNeeds.filter(n => !remoteIds.has(n.id));
+      
+      const merged = [...data, ...unsynced];
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
     } else {
       console.warn('Supabase returned error or empty for needs:', error);
     }
@@ -90,8 +103,31 @@ export async function addNeed(
       await getNeeds();
       return data;
     }
+    
+    // Fallback if foreign key violation
     if (error) {
-      console.warn('Supabase insert need failed, trying offline-first fallback:', error);
+      console.warn('Supabase insert need failed. Error info:', error);
+      
+      const isFkViolation = error.code === '23503' || error.message?.includes('foreign key') || error.message?.includes('violates foreign key');
+      if (isFkViolation) {
+        console.warn('Retrying need insert without created_by field...');
+        const retryNeed: any = { ...newNeed };
+        delete retryNeed.created_by;
+        
+        const { data: retryData, error: retryError } = await supabase
+          .from('needs')
+          .insert([retryNeed])
+          .select()
+          .single();
+          
+        if (!retryError && retryData) {
+          await getNeeds();
+          return {
+            ...newNeed,
+            ...retryData
+          };
+        }
+      }
     }
   } catch (err) {
     console.warn('Exception inserting need to Supabase:', err);

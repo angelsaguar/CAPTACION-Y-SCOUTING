@@ -28,14 +28,20 @@ export async function getObservers(): Promise<Observer[]> {
       .order('nombre');
 
     if (!error && data) {
-      // Merge: Keep database values, but fallback to local cached photo if db photo is missing
-      const merged = data.map((item: any) => {
-        const localItem = localList.find((o) => o.id === item.id);
-        return {
-          ...item,
-          foto_url: item.foto_url || (localItem ? localItem.foto_url : undefined)
-        };
-      });
+      // Keep database values, but fallback to local cached photo if db photo is missing
+      const remoteIds = new Set(data.map((item: any) => item.id));
+      const unsynced = localList.filter((o) => !remoteIds.has(o.id));
+
+      const merged = [
+        ...data.map((item: any) => {
+          const localItem = localList.find((o) => o.id === item.id);
+          return {
+            ...item,
+            foto_url: item.foto_url || (localItem ? localItem.foto_url : undefined)
+          };
+        }),
+        ...unsynced
+      ];
       // Synchronize to localStorage backup
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
       return merged;
