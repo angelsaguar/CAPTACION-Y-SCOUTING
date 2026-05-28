@@ -4,8 +4,34 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let myFilename = "";
+let myDirname = "";
+
+try {
+  if (typeof __filename !== 'undefined') {
+    myFilename = __filename;
+  }
+  if (typeof __dirname !== 'undefined') {
+    myDirname = __dirname;
+  }
+} catch (e) {
+  // Ignore reference errors
+}
+
+if (!myDirname) {
+  try {
+    if (import.meta && import.meta.url) {
+      myFilename = fileURLToPath(import.meta.url);
+      myDirname = path.dirname(myFilename);
+    } else {
+      myDirname = process.cwd();
+      myFilename = path.join(myDirname, 'server.ts');
+    }
+  } catch (e) {
+    myDirname = process.cwd();
+    myFilename = path.join(myDirname, 'server.ts');
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -40,7 +66,7 @@ async function startServer() {
         return next();
       }
       try {
-        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        let template = fs.readFileSync(path.resolve(myDirname, 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(req.originalUrl, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (err) {
@@ -49,7 +75,7 @@ async function startServer() {
     });
   } else {
     // Production static serving
-    const distPath = path.join(__dirname, 'dist');
+    const distPath = path.join(myDirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
