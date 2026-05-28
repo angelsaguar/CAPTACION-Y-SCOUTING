@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Need } from '@/types';
+import { generateUUID } from './utils';
 
 const LOCAL_STORAGE_KEY = 'ud_lapoveda_needs_backup';
 
@@ -66,9 +67,7 @@ export async function addNeed(
   if (!posicion) throw new Error('La posición solicitada es obligatoria');
   if (!trimmedSolicitante) throw new Error('La persona solicitante es obligatoria');
 
-  const newId = typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
-    : Math.random().toString(36).substring(2, 15);
+  const newId = generateUUID();
 
   const newNeed: Need = {
     id: newId,

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Coach } from '@/types';
+import { generateUUID } from './utils';
 
 const LOCAL_STORAGE_KEY = 'ud_lapoveda_coaches_backup';
 
@@ -78,9 +79,7 @@ export async function addCoach(
   if (!trimmedEquipo) throw new Error('El equipo que dirige es obligatorio');
   if (!trimmedCategoria) throw new Error('La categoría es obligatoria');
 
-  const newId = typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
-    : Math.random().toString(36).substring(2, 15);
+  const newId = generateUUID();
 
   const newCoach: Coach = {
     id: newId,

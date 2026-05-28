@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Observer } from '@/types';
+import { generateUUID } from './utils';
 
 const LOCAL_STORAGE_KEY = 'ud_lapoveda_observers_backup';
 
@@ -52,9 +53,7 @@ export async function addObserver(nombre: string, foto_url?: string): Promise<Ob
   const trimmedName = nombre.trim();
   if (!trimmedName) throw new Error('El nombre del observador no puede estar vacío');
 
-  const newId = typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
-    : Math.random().toString(36).substring(2, 15);
+  const newId = generateUUID();
 
   const newObserver: Observer = {
     id: newId,
