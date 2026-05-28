@@ -51,13 +51,57 @@ const STATUS_COLORS: Record<string, string> = {
 
 const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#ca8a04', '#7c3aed', '#db2777'];
 
+const parseLocalDate = (dateString: string) => {
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+    const day = parseInt(parts[2], 10);
+    return new Date(year, month, day);
+  }
+  return new Date(dateString);
+};
+
+const formatDate = (dateString: string) => {
+  try {
+    const date = parseLocalDate(dateString);
+    const formatted = format(date, "EEEE, d 'de' MMMM", { locale: es });
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  } catch (e) {
+    return dateString;
+  }
+};
+
+const getBorderColor = (status: string) => {
+  switch (status) {
+    case 'Observado': return 'border-slate-500';
+    case 'En seguimiento': return 'border-amber-500';
+    case 'Interesa': return 'border-emerald-500';
+    case 'Fichado': return 'border-blue-500';
+    case 'Rechazado': return 'border-red-500';
+    default: return 'border-slate-600';
+  }
+};
+
+const getTextColorForBadge = (status: string) => {
+  switch (status) {
+    case 'Observado': return 'text-slate-400';
+    case 'En seguimiento': return 'text-amber-500';
+    case 'Interesa': return 'text-emerald-500';
+    case 'Fichado': return 'text-blue-500';
+    case 'Rechazado': return 'text-red-500';
+    default: return 'text-slate-400';
+  }
+};
+
 export default function Dashboard() {
   const [stats, setStats] = useState({
     total: 0,
     byPosition: [] as any[],
     recentPlayers: [] as Player[],
     byStatus: [] as any[],
-    newThisMonth: 0
+    newThisMonth: 0,
+    upcomingPlayers: [] as Player[]
   });
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [observers, setObservers] = useState<Observer[]>([]);
@@ -132,12 +176,22 @@ export default function Dashboard() {
       return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
     }).length;
 
+    // Filter and sort players with upcoming follow-up dates
+    const upcoming = filteredPlayers
+      .filter(p => p.fecha_seguimiento && p.fecha_seguimiento.trim() !== '')
+      .sort((a, b) => {
+        const dateA = new Date(a.fecha_seguimiento!).getTime();
+        const dateB = new Date(b.fecha_seguimiento!).getTime();
+        return dateA - dateB;
+      });
+
     setStats({
       total: filteredPlayers.length,
       byPosition: Object.entries(positions).map(([name, value]) => ({ name, value })),
       byStatus: Object.entries(statusMap).map(([name, value]) => ({ name, value })),
       recentPlayers: filteredPlayers.slice(0, 5),
-      newThisMonth: newThisMonthCount
+      newThisMonth: newThisMonthCount,
+      upcomingPlayers: upcoming
     });
   }, [allPlayers, selectedObserver]);
 
@@ -357,19 +411,38 @@ export default function Dashboard() {
             <CardTitle className="text-lg font-bold text-white tracking-tight">Próximos Seguimientos</CardTitle>
           </CardHeader>
           <CardContent>
-             <div className="space-y-4">
-                <div className="p-4 border-l-4 border-blue-600 bg-slate-800/50 rounded-r-2xl">
-                  <p className="text-sm font-bold text-white truncate">Seguimiento Torneo Regional</p>
-                  <p className="text-[10px] uppercase font-black tracking-widest text-blue-500 mt-1">Mañana, 10:00 AM</p>
-                </div>
-                <div className="p-4 border-l-4 border-red-600 bg-slate-800/50 rounded-r-2xl">
-                  <p className="text-sm font-bold text-white truncate">Revisión de informes pendientes</p>
-                  <p className="text-[10px] uppercase font-black tracking-widest text-red-500 mt-1">Jueves, 05:00 PM</p>
-                </div>
-                <div className="p-4 border-l-4 border-green-600 bg-slate-800/50 rounded-r-2xl">
-                  <p className="text-sm font-bold text-white truncate">Reunión equipo de captación</p>
-                  <p className="text-[10px] uppercase font-black tracking-widest text-green-500 mt-1">Viernes, 11:00 AM</p>
-                </div>
+             <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                {stats.upcomingPlayers.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 italic text-xs md:text-sm">
+                    No hay próximos seguimientos programados.
+                    <p className="text-[10px] text-slate-600 mt-1 font-sans not-italic">Define una fecha de seguimiento al editar un jugador.</p>
+                  </div>
+                ) : (
+                  stats.upcomingPlayers.map((player) => (
+                    <Link
+                      key={player.id}
+                      to={`/players/${player.id}`}
+                      className={cn(
+                        "block p-4 border-l-4 bg-slate-800/30 hover:bg-slate-800/60 rounded-r-2xl border-solid transition-all group",
+                        getBorderColor(player.estado)
+                      )}
+                    >
+                      <p className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">
+                        Seguimiento: {player.nombre} {player.apellidos}
+                      </p>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter mt-0.5">
+                        {player.posicion} • {player.equipo_actual || 'Sin club'}
+                      </p>
+                      <p className={cn(
+                        "text-[10px] uppercase font-black tracking-widest mt-2 flex items-center gap-1",
+                        getTextColorForBadge(player.estado)
+                      )}>
+                        <Clock className="w-3 h-3 shrink-0" />
+                        {formatDate(player.fecha_seguimiento!)}
+                      </p>
+                    </Link>
+                  ))
+                )}
              </div>
           </CardContent>
         </Card>
