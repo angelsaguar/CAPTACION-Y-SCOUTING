@@ -159,9 +159,17 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white italic">Panel de Control</h1>
-          <p className="text-slate-500 text-xs md:text-sm font-medium">Resumen de captación y seguimiento de prospectos.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white italic">Panel de Control</h1>
+            <p className="text-slate-500 text-xs md:text-sm font-medium">Resumen de captación y seguimiento de prospectos.</p>
+          </div>
+          <Link to="/players" className="inline-flex self-start sm:self-center">
+            <Button variant="outline" className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border-blue-500/40 rounded-full font-extrabold text-sm md:text-base h-12 md:h-14 px-5 md:px-7 flex items-center gap-3 shadow-lg shadow-blue-955/20 transition-all duration-300 transform hover:scale-[1.02]">
+              <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
+              Jugadores Captados: <span className="text-white bg-slate-950 px-4 py-1.5 rounded-full text-base md:text-lg font-black whitespace-nowrap min-w-[3rem] text-center border border-blue-500/20">{totalCount}</span>
+            </Button>
+          </Link>
         </div>
         <Link to="/players/new" className="w-full sm:w-auto">
           <Button className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-6 rounded-full font-bold shadow-lg shadow-red-900/30">

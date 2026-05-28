@@ -228,14 +228,28 @@ export default function Coaches() {
   return (
     <div className="space-y-6 md:space-y-8 max-w-6xl mx-auto px-4 md:px-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-white italic uppercase tracking-tight flex items-center gap-2">
-            <ClipboardList className="w-8 h-8 text-indigo-500" />
-            Entrenadores en Seguimiento
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Registra y gestiona coordinadores y técnicos de otros clubes con potencial de incorporación.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-white italic uppercase tracking-tight flex items-center gap-2">
+              <ClipboardList className="w-8 h-8 text-indigo-500" />
+              Entrenadores en Seguimiento
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Registra y gestiona coordinadores y técnicos de otros clubes con potencial de incorporación.
+            </p>
+          </div>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              setSearchTerm('');
+              setFilterClub('');
+              toast.info('Se han restablecido los filtros de entrenadores');
+            }}
+            className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border-indigo-500/40 rounded-full font-extrabold text-sm md:text-base h-12 md:h-14 px-5 md:px-7 self-start sm:self-center flex items-center gap-3 shadow-lg shadow-indigo-955/20 transition-all duration-300 transform hover:scale-[1.02]"
+          >
+            <span className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse"></span>
+            Entrenadores: <span className="text-white bg-slate-950 px-4 py-1.5 rounded-full text-base md:text-lg font-black whitespace-nowrap min-w-[3rem] text-center border border-indigo-500/20">{coaches.length}</span>
+          </Button>
         </div>
       </div>
 

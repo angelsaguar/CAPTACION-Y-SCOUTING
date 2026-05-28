@@ -147,9 +147,26 @@ export default function Players() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white italic">Base de Jugadores</h1>
-          <p className="text-slate-500 text-xs md:text-sm font-medium">Gestiona y analiza el talento detectado.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white italic">Base de Jugadores</h1>
+            <p className="text-slate-500 text-xs md:text-sm font-medium">Gestiona y analiza el talento detectado.</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setSearch(''); 
+              setFilterStatus(''); 
+              setFilterPosition(''); 
+              setFilterLateralidad('');
+              setFilterBirthYear('');
+              toast.info('Se han restablecido todos los filtros para mostrar el total');
+            }}
+            className="bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border-blue-500/40 rounded-full font-extrabold text-sm md:text-base h-12 md:h-14 px-5 md:px-7 flex items-center gap-3 self-start sm:self-center shadow-lg shadow-blue-955/20 transition-all duration-300 transform hover:scale-[1.02]"
+          >
+            <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
+            Jugadores Captados: <span className="text-white bg-slate-950 px-4 py-1.5 rounded-full text-base md:text-lg font-black whitespace-nowrap min-w-[3rem] text-center border border-blue-500/20">{players.length}</span>
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center border border-slate-800 rounded-xl p-1 bg-slate-900/50">
